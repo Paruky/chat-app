@@ -7,9 +7,9 @@ const rooms = [];
 const db = new Database("chat.db");
 
 webPush.setVapidDetails(
-    "mailto:test@example.com",
-    "YOUR_PUBLIC_KEY",
-    "YOUR_PRIVATE_KEY"
+    "mailto:haruki.mzawa0408@gmail.com",
+    "BIWIEcJAK1coBk0fwuRoza3y9AlbfzrP--wMtpGUkO4QeqEX2DAasUc9m7GZ4aAKgq-d7mOQwzUXrHytpjvuPEs",
+    "h-qOGtzeu6xy2PQ3yNHXQSzBvIkAqogUDsQSDej6cDY"
 );
 db.prepare(`
     CREATE TABLE IF NOT EXISTS messages (
