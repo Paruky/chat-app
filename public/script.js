@@ -140,3 +140,39 @@ socket.on("message history", (messagesData) => {
     });
 
 });
+
+let deferredPrompt = null;
+
+const installBtn = document.getElementById("installBtn");
+const iosHint = document.getElementById("iosHint");
+
+// Android / Chrome系：インストール可能検知
+window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+
+    installBtn.style.display = "block";
+});
+
+// ボタン押したらインストール
+installBtn.addEventListener("click", async () => {
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+
+    const choice = await deferredPrompt.userChoice;
+
+    if (choice.outcome === "accepted") {
+        console.log("インストール完了");
+    } else {
+        console.log("キャンセル");
+    }
+
+    deferredPrompt = null;
+    installBtn.style.display = "none";
+});
+
+// iPhone検知（PWAボタン非対応）
+if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    iosHint.style.display = "block";
+}
