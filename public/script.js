@@ -186,3 +186,43 @@ installBtn.addEventListener("click", async () => {
 if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
     iosHint.style.display = "block";
 }
+
+async function subscribePush() {
+    const registration = await navigator.serviceWorker.ready;
+
+    const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: "BIWIEcJAK1coBk0fwuRoza3y9AlbfzrP--wMtpGUkO4QeqEX2DAasUc9m7GZ4aAKgq-d7mOQwzUXrHytpjvuPEs"
+    });
+
+    await fetch("/subscribe", {
+        method: "POST",
+        body: JSON.stringify(subscription),
+        headers: {
+            "Content-Type": "application/json"
+        }
+    });
+
+    console.log("Push登録完了");
+}
+
+const subscriptions = [];
+
+app.use(express.json());
+
+app.post("/subscribe", (req, res) => {
+    subscriptions.push(req.body);
+    res.status(200).json({ success: true });
+});
+
+function sendAll(message) {
+    const payload = JSON.stringify({
+        title: "Paruky Chat",
+        body: message
+    });
+
+    subscriptions.forEach(sub => {
+        webPush.sendNotification(sub, payload)
+            .catch(err => console.error(err));
+    });
+}
