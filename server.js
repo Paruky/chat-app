@@ -4,7 +4,7 @@ const Database = require("better-sqlite3");
 const { Server } = require("socket.io");
 const rooms = [];
 const db = new Database("chat.db");
-db.run(`
+db.prepare(`
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         room TEXT,
@@ -13,7 +13,7 @@ db.run(`
         message TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
-`);
+`).run();
 
 const app = express();
 const server = http.createServer(app);
