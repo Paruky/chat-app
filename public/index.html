@@ -4,7 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat App</title>
+    <link rel="manifest" href="/manifest.json" />
     <link rel="stylesheet" href="style.css">
+    <script>
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker.register("/sw.js")
+                .then((reg) => {
+                    console.log("SW registered:", reg.scope);
+                })
+                .catch((err) => {
+                    console.log("SW registration failed:", err);
+                });
+        });
+    }
+    </script>
 </head>
 <body>
 
@@ -34,7 +48,7 @@
 
 </div>
 
-<link rel="manifest" href="/manifest.json" />
+
 <meta name="theme-color" content="#0f0f0f" />
 <script src="/socket.io/socket.io.js"></script>
 <script src="script.js"></script>
