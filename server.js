@@ -96,3 +96,10 @@ function sendPush(subscription, message) {
 
     webPush.sendNotification(subscription, payload);
 }
+
+console.log(subscriptions);
+
+console.log("送信開始");
+subscriptions.forEach(s => console.log(s));
+
+console.log("subscriptions:", subscriptions.length);
