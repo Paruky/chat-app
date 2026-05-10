@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="chat-container">
+
+    <div id="sidebar">
+        <h3>部屋一覧</h3>
+        <div id="room-list"></div>
+    </div>
+
+    <div id="main-chat">
+
+        <div id="top-bar">
+            <input id="room" placeholder="部屋名">
+            <button id="join-btn" type="button">参加</button>
+        </div>
+
+        <div id="messages"></div>
+
+        <form id="form">
+            <input id="name" placeholder="名前を入力">
+            <input id="input" autocomplete="off" placeholder="メッセージを入力">
+            <button>送信</button>
+        </form>
+
+    </div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>
