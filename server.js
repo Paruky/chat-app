@@ -1,9 +1,16 @@
 const express = require("express");
 const http = require("http");
 const Database = require("better-sqlite3");
+const webPush = require("web-push");
 const { Server } = require("socket.io");
 const rooms = [];
 const db = new Database("chat.db");
+
+webPush.setVapidDetails(
+    "mailto:test@example.com",
+    "YOUR_PUBLIC_KEY",
+    "YOUR_PRIVATE_KEY"
+);
 db.prepare(`
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,3 +87,12 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`サーバー起動: ${PORT}`);
 });
+
+function sendPush(subscription, message) {
+    const payload = JSON.stringify({
+        title: "Paruky Chat",
+        body: message
+    });
+
+    webPush.sendNotification(subscription, payload);
+}

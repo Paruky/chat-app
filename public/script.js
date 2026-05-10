@@ -141,6 +141,16 @@ socket.on("message history", (messagesData) => {
 
 });
 
+async function enableNotifications() {
+    const permission = await Notification.requestPermission();
+
+    if (permission === "granted") {
+        console.log("通知OK");
+    } else {
+        console.log("通知拒否 or 保留");
+    }
+}
+
 let deferredPrompt = null;
 
 const installBtn = document.getElementById("installBtn");
