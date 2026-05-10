@@ -14,20 +14,13 @@ const messages = document.getElementById("messages");
 const roomInput = document.getElementById("room");
 const joinBtn = document.getElementById("join-btn");
 
-const installBtn = document.getElementById("installBtn");
-const iosHint = document.getElementById("iosHint");
-
 let currentRoom = "";
-let deferredPrompt = null;
-
-/* -------------------------
-   チャット
--------------------------- */
 
 joinBtn.addEventListener("click", () => {
     if (!roomInput.value || !nameInput.value) return;
 
     currentRoom = roomInput.value;
+
     localStorage.setItem("chatName", nameInput.value);
 
     socket.emit("join room", {
@@ -51,10 +44,6 @@ form.addEventListener("submit", (e) => {
     input.value = "";
 });
 
-/* -------------------------
-   メッセージ表示
--------------------------- */
-
 function addMessage(data) {
     const item = document.createElement("div");
     item.classList.add("message");
@@ -76,96 +65,24 @@ socket.on("message history", (data) => {
     data.forEach(addMessage);
 });
 
-/* -------------------------
-   インストールPWA
--------------------------- */
+socket.on("room list", (rooms) => {
+    roomList.innerHTML = "";
 
-window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.style.display = "block";
-});
+    rooms.forEach((room) => {
+        const item = document.createElement("div");
+        item.classList.add("room-item");
+        item.textContent = room;
 
-installBtn.addEventListener("click", async () => {
-    if (!deferredPrompt) return;
+        item.addEventListener("click", () => {
+            currentRoom = room;
+            roomInput.value = room;
 
-    deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-
-    console.log(choice.outcome);
-
-    deferredPrompt = null;
-    installBtn.style.display = "none";
-});
-
-/* -------------------------
-   iPhone補助
--------------------------- */
-
-if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-    iosHint.style.display = "block";
-}
-
-/* -------------------------
-   通知許可
--------------------------- */
-
-async function enableNotifications() {
-    const permission = await Notification.requestPermission();
-
-    console.log("permission:", permission);
-
-    if (permission === "granted") {
-        console.log("通知OK");
-        subscribePush();
-    }
-}
-
-/* -------------------------
-   Push登録
--------------------------- */
-
-function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-        .replace(/-/g, '+')
-        .replace(/_/g, '/');
-
-    const rawData = atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-
-    return outputArray;
-}
-
-async function subscribePush() {
-    try {
-        const registration = await navigator.serviceWorker.ready;
-
-        console.log("SW ready OK");
-
-        const publicKey = "BIWIEcJAK1coBk0fwuRoza3y9AlbfzrP--wMtpGUkO4QeqEX2DAasUc9m7GZ4aAKgq-d7mOQwzUXrHytpjvuPEs";
-
-        const subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(publicKey)
+            socket.emit("join room", {
+                room,
+                name: nameInput.value
+            });
         });
 
-        console.log("subscription OK:", subscription);
-
-        const res = await fetch("/subscribe", {
-            method: "POST",
-            body: JSON.stringify(subscription),
-            headers: {
-                "Content-Type": "application/json"
-            }
-        });
-
-        console.log("server response:", await res.json());
-    } catch (err) {
-        console.error("subscribe error:", err);
-    }
-}
+        roomList.appendChild(item);
+    });
+});
