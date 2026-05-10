@@ -1,9 +1,9 @@
 const express = require("express");
 const http = require("http");
-const sqlite3 = require("sqlite3").verbose();
+const Database = require("better-sqlite3");
 const { Server } = require("socket.io");
 const rooms = [];
-const db = new sqlite3.Database("./chat.db");
+const db = new Database("chat.db");
 db.run(`
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,15 +32,11 @@ io.on("connection", (socket) => {
 
         socket.room = data.room;
         socket.username = data.name;
-        db.all(
-            "SELECT * FROM messages WHERE room = ? ORDER BY id ASC",
-            [data.room],
-            (err, rows) => {
+        const rows = db.prepare(
+            "SELECT * FROM messages WHERE room = ? ORDER BY id ASC"
+        ).all(data.room);
 
-                socket.emit("message history", rows);
-
-            }
-        );
+        socket.emit("message history", rows);
 
         if (!rooms.includes(data.room)) {
             rooms.push(data.room);
@@ -52,9 +48,15 @@ io.on("connection", (socket) => {
 
     socket.on("chat message", (data) => {
 
-        db.run(
-            "INSERT INTO messages (room, userId, name, message) VALUES (?, ?, ?, ?)",
-            [data.room, data.userId, data.name, data.message]
+        const stmt = db.prepare(
+            "INSERT INTO messages (room, userId, name, message) VALUES (?, ?, ?, ?)"
+        );
+
+        stmt.run(
+            data.room,
+            data.userId,
+            data.name,
+            data.message
         );
 
         io.to(data.room).emit("chat message", {
