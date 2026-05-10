@@ -244,3 +244,10 @@ function sendAll(message) {
             .catch(err => console.error(err));
     });
 }
+
+console.log(subscriptions);
+
+console.log("送信開始");
+subscriptions.forEach(s => console.log(s));
+
+console.log("subscriptions:", subscriptions.length);
