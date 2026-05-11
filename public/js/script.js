@@ -21,6 +21,9 @@ joinBtn.addEventListener("click", () => {
 
     currentRoom = roomInput.value;
 
+    document.getElementById("current-room").textContent =
+        `# ${currentRoom}`;
+
     localStorage.setItem("chatName", nameInput.value);
 
     socket.emit("join room", {
@@ -74,8 +77,6 @@ socket.on("room list", (rooms) => {
         item.textContent = room;
 
         item.addEventListener("click", () => {
-            currentRoom = room;
-            roomInput.value = room;
 
             document.querySelectorAll(".room-item").forEach(el => {
                 el.classList.remove("active");
@@ -83,10 +84,17 @@ socket.on("room list", (rooms) => {
 
             item.classList.add("active");
 
+            currentRoom = room;
+            roomInput.value = room;
+
+            document.getElementById("current-room").textContent =
+                `# ${room}`;
+
             socket.emit("join room", {
                 room,
                 name: nameInput.value
             });
+
         });
 
         roomList.appendChild(item);
