@@ -1,8 +1,22 @@
+:root {
+    --bg-main: #1e1e1e;
+    --bg-sidebar: #111;
+    --bg-card: #222;
+    --bg-message: #333;
+
+    --accent: #007aff;
+
+    --text-main: #fff;
+    --text-sub: #888;
+
+    --border: #333;
+}
+
 body {
     margin: 0;
 
-    background: #1e1e1e;
-    color: white;
+    background: var(--bg-main);
+    color: var(--text-main);
 
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
@@ -47,7 +61,7 @@ body {
     padding: 12px;
     border-radius: 16px;
 
-    background: #333;
+    background: var(--bg-message);
 
     word-break: break-word;
     overflow-wrap: anywhere;
@@ -56,7 +70,7 @@ body {
 form {
     display: flex;
     padding: 10px;
-    background: #111;
+    background: var(--bg-sidebar);
     gap: 10px;
 
     position: sticky;
@@ -70,8 +84,8 @@ input {
     padding: 14px;
     border: none;
     border-radius: 14px;
-    background: #222;
-    color: white;
+    background: var(--bg-card);
+    color: var(--text-main);
     min-width: 0;
 }
 
@@ -79,7 +93,7 @@ button {
     padding: 14px 18px;
     border: none;
     border-radius: 14px;
-    background: #007aff;
+    background: var(--accent);
     color: white;
     cursor: pointer;
     flex-shrink: 0;
@@ -87,12 +101,12 @@ button {
 
 .my-message {
     margin-left: auto;
-    background: #007aff;
+    background: var(--accent);
 }
 
 .system-message {
     text-align: center;
-    color: #888;
+    color: var(--text-sub);
     margin: 10px 0;
     font-size: 14px;
 }
@@ -100,7 +114,7 @@ button {
 #top-bar {
     display: flex;
     padding: 10px;
-    background: #222;
+    background: var(--bg-card);
     gap: 10px;
 }
 
@@ -110,9 +124,9 @@ button {
 
 #sidebar {
     width: 220px;
-    background: #111;
+    background: var(--bg-sidebar);
     padding: 10px;
-    border-right: 1px solid #333;
+    border-right: 1px solid var(--border);
     overflow-y: auto;
     flex-shrink: 0;
 }
@@ -125,7 +139,7 @@ button {
 }
 
 .room-item {
-    background: #222;
+    background: var(--bg-card);
     padding: 10px;
     border-radius: 10px;
     margin-bottom: 10px;
@@ -133,7 +147,11 @@ button {
 }
 
 .room-item:hover {
-    background: #333;
+    background: var(--bg-message);
+}
+
+.room-item.active {
+    background: var(--accent);
 }
 
 * {
@@ -168,18 +186,18 @@ input:focus {
 
 /* スクロールバー背景 */
 ::-webkit-scrollbar-track {
-    background: #1e1e1e;
+    background: var(--bg-main);
 }
 
 /* スクロールバー本体 */
 ::-webkit-scrollbar-thumb {
-    background: #444;
+    background: var(--bg-card);
     border-radius: 999px;
 }
 
 /* ホバー */
 ::-webkit-scrollbar-thumb:hover {
-    background: #666;
+    background: var(--bg-message);
 }
 
 @media (max-width: 700px) {
@@ -197,7 +215,7 @@ input:focus {
         height: 120px;
 
         border-right: none;
-        border-bottom: 1px solid #333;
+        border-bottom: 1px solid var(--border);
 
         display: flex;
         flex-direction: column;

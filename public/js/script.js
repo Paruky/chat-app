@@ -77,6 +77,12 @@ socket.on("room list", (rooms) => {
             currentRoom = room;
             roomInput.value = room;
 
+            document.querySelectorAll(".room-item").forEach(el => {
+                el.classList.remove("active");
+            });
+
+            item.classList.add("active");
+
             socket.emit("join room", {
                 room,
                 name: nameInput.value
@@ -86,3 +92,15 @@ socket.on("room list", (rooms) => {
         roomList.appendChild(item);
     });
 });
+
+if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker.register("/sw.js")
+                .then((reg) => {
+                    console.log("SW registered:", reg.scope);
+                })
+                .catch((err) => {
+                    console.log("SW registration failed:", err);
+                });
+        });
+    }
