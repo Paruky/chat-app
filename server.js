@@ -11,8 +11,6 @@ const db = new Database("chat.db");
 
 app.use(express.static("public"));
 
-const rooms = [];
-
 db.prepare(`
 CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,22 +24,39 @@ CREATE TABLE IF NOT EXISTS messages (
 
 io.on("connection", (socket) => {
 
-    socket.emit("room list", rooms);
+    const rooms = db.prepare(`
+        SELECT DISTINCT room
+        FROM messages
+    `).all();
+
+    socket.emit(
+        "room list",
+        rooms.map(r => r.room)
+    );
 
     socket.on("join room", (data) => {
-        socket.join(data.room);
+        if (socket.currentRoom) {
+            socket.leave(socket.currentRoom);
+        }
 
+        socket.join(data.room);
+        socket.currentRoom = data.room;
+        
         const rows = db.prepare(
             "SELECT * FROM messages WHERE room = ? ORDER BY id ASC"
         ).all(data.room);
 
         socket.emit("message history", rows);
 
-        if (!rooms.includes(data.room)) {
-            rooms.push(data.room);
-        }
+        const updatedRooms = db.prepare(`
+            SELECT DISTINCT room
+            FROM messages
+        `).all();
 
-        io.emit("room list", rooms);
+        io.emit(
+            "room list",
+            updatedRooms.map(r => r.room)
+        );
     });
 
     socket.on("chat message", (data) => {
