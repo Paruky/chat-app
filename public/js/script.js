@@ -21,7 +21,7 @@ joinBtn.addEventListener("click", () => {
 
     currentRoom = roomInput.value;
 
-    document.getElementById("current-room").textContent =
+    document.getElementById("current-room-name").textContent =
         `# ${currentRoom}`;
 
     localStorage.setItem("chatName", nameInput.value);
@@ -87,7 +87,7 @@ socket.on("room list", (rooms) => {
             currentRoom = room;
             roomInput.value = room;
 
-            document.getElementById("current-room").textContent =
+            document.getElementById("current-room-name").textContent =
                 `# ${room}`;
 
             socket.emit("join room", {
