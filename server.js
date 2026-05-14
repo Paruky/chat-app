@@ -22,16 +22,25 @@ CREATE TABLE IF NOT EXISTS messages (
 )
 `).run();
 
+db.prepare(`
+CREATE TABLE IF NOT EXISTS rooms (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+`).run();
+
 io.on("connection", (socket) => {
 
     const rooms = db.prepare(`
-        SELECT DISTINCT room
-        FROM messages
+        SELECT name
+        FROM rooms
+        ORDER BY id DESC
     `).all();
 
     socket.emit(
         "room list",
-        rooms.map(r => r.room)
+        rooms.map(r => r.name)
     );
 
     socket.on("join room", (data) => {
@@ -41,7 +50,12 @@ io.on("connection", (socket) => {
 
         socket.join(data.room);
         socket.currentRoom = data.room;
-        
+
+        db.prepare(`
+            INSERT OR IGNORE INTO rooms (name)
+            VALUES (?)
+        `).run(data.room);
+
         const rows = db.prepare(
             "SELECT * FROM messages WHERE room = ? ORDER BY id ASC"
         ).all(data.room);
@@ -49,14 +63,20 @@ io.on("connection", (socket) => {
         socket.emit("message history", rows);
 
         const updatedRooms = db.prepare(`
-            SELECT DISTINCT room
-            FROM messages
+            SELECT name
+            FROM rooms
+            ORDER BY id DESC
         `).all();
 
         io.emit(
             "room list",
-            updatedRooms.map(r => r.room)
+            updatedRooms.map(r => r.name)
         );
+
+        db.prepare(`
+            INSERT OR IGNORE INTO rooms (name)
+            VALUES (?)
+        `).run(data.room);
     });
 
     socket.on("chat message", (data) => {
