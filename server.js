@@ -13,15 +13,6 @@ const supabase = createClient(
 
 app.use(express.static("public"));
 
-
-db.prepare(`
-CREATE TABLE IF NOT EXISTS rooms (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)
-`).run();
-
 io.on("connection", async (socket) => {
 
     const { data: roomsData } = await supabase
@@ -47,11 +38,6 @@ io.on("connection", async (socket) => {
         socket.join(data.room);
         socket.currentRoom = data.room;
 
-        db.prepare(`
-            INSERT OR IGNORE INTO rooms (name)
-            VALUES (?)
-        `).run(data.room);
-
         const { data: rows } = await supabase
         .from("messages")
         .select("*")
@@ -74,11 +60,6 @@ io.on("connection", async (socket) => {
             "room list",
             updatedRooms
         );
-
-        db.prepare(`
-            INSERT OR IGNORE INTO rooms (name)
-            VALUES (?)
-        `).run(data.room);
     });
 
     socket.on("chat message", async (data) => {
