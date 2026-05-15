@@ -39,7 +39,7 @@ io.on("connection", async (socket) => {
         uniqueRooms
     );
 
-    socket.on("join room", (data) => {
+    socket.on("join room", async (data) => {
         if (socket.currentRoom) {
             socket.leave(socket.currentRoom);
         }
@@ -81,7 +81,7 @@ io.on("connection", async (socket) => {
         `).run(data.room);
     });
 
-    socket.on("chat message", (data) => {
+    socket.on("chat message", async (data) => {
 
         await supabase
         .from("messages")
