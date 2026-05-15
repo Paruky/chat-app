@@ -1,26 +1,18 @@
 const express = require("express");
 const http = require("http");
-const Database = require("better-sqlite3");
 const { Server } = require("socket.io");
+const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-
-const db = new Database("chat.db");
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_KEY
+);
 
 app.use(express.static("public"));
 
-db.prepare(`
-CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    room TEXT,
-    userId TEXT,
-    name TEXT,
-    message TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)
-`).run();
 
 db.prepare(`
 CREATE TABLE IF NOT EXISTS rooms (
@@ -30,17 +22,21 @@ CREATE TABLE IF NOT EXISTS rooms (
 )
 `).run();
 
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
 
-    const rooms = db.prepare(`
-        SELECT name
-        FROM rooms
-        ORDER BY id DESC
-    `).all();
+    const { data: roomsData } = await supabase
+        .from("messages")
+        .select("room");
+
+    const uniqueRooms = [
+        ...new Set(
+            roomsData.map(r => r.room)
+        )
+    ];
 
     socket.emit(
         "room list",
-        rooms.map(r => r.name)
+        uniqueRooms
     );
 
     socket.on("join room", (data) => {
@@ -56,21 +52,27 @@ io.on("connection", (socket) => {
             VALUES (?)
         `).run(data.room);
 
-        const rows = db.prepare(
-            "SELECT * FROM messages WHERE room = ? ORDER BY id ASC"
-        ).all(data.room);
+        const { data: rows } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("room", data.room)
+        .order("id", { ascending: true });
 
         socket.emit("message history", rows);
 
-        const updatedRooms = db.prepare(`
-            SELECT name
-            FROM rooms
-            ORDER BY id DESC
-        `).all();
+        const { data: updatedRoomsData } = await supabase
+            .from("messages")
+            .select("room");
+
+        const updatedRooms = [
+            ...new Set(
+                updatedRoomsData.map(r => r.room)
+            )
+        ];
 
         io.emit(
             "room list",
-            updatedRooms.map(r => r.name)
+            updatedRooms
         );
 
         db.prepare(`
@@ -81,14 +83,16 @@ io.on("connection", (socket) => {
 
     socket.on("chat message", (data) => {
 
-        db.prepare(
-            "INSERT INTO messages (room, userId, name, message) VALUES (?, ?, ?, ?)"
-        ).run(
-            data.room,
-            data.userId,
-            data.name,
-            data.message
-        );
+        await supabase
+        .from("messages")
+        .insert([
+            {
+                room: data.room,
+                userId: data.userId,
+                name: data.name,
+                message: data.message
+            }
+        ]);
 
         io.to(data.room).emit("chat message", data);
     });
