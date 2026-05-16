@@ -71,7 +71,7 @@ io.on("connection", async (socket) => {
             .insert([
                 {
                     room: data.room,
-                    userId: data.userId,
+                    userid: data.userId,
                     name: data.name,
                     message: data.message
                 }
