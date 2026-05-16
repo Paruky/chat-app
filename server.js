@@ -26,14 +26,15 @@ io.on("connection", async (socket) => {
         uniqueRooms
     );
 
-    await supabase
-    .from("rooms")
-    .upsert([
-        {
-            name: data.room
-        }
-    ]);
+    
     socket.on("join room", async (data) => {
+            await supabase
+        .from("rooms")
+        .upsert([
+            {
+                name: data.room
+            }
+        ]);
         if (socket.currentRoom) {
             socket.leave(socket.currentRoom);
         }
