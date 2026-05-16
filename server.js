@@ -28,13 +28,15 @@ io.on("connection", async (socket) => {
 
     
     socket.on("join room", async (data) => {
-            await supabase
-        .from("rooms")
-        .upsert([
-            {
-                name: data.room
-            }
-        ]);
+        const { error: roomError } = await supabase
+            .from("rooms")
+            .upsert([
+                {
+                    name: data.room
+                }
+            ]);
+
+        console.log("ROOM ERROR:", roomError);
         if (socket.currentRoom) {
             socket.leave(socket.currentRoom);
         }
@@ -64,16 +66,18 @@ io.on("connection", async (socket) => {
 
     socket.on("chat message", async (data) => {
 
-        await supabase
-        .from("messages")
-        .insert([
-            {
-                room: data.room,
-                userId: data.userId,
-                name: data.name,
-                message: data.message
-            }
-        ]);
+        const { error: messageError } = await supabase
+            .from("messages")
+            .insert([
+                {
+                    room: data.room,
+                    userId: data.userId,
+                    name: data.name,
+                    message: data.message
+                }
+            ]);
+
+        console.log("MESSAGE ERROR:", messageError);
 
         io.to(data.room).emit("chat message", data);
     });
