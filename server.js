@@ -19,9 +19,6 @@ io.on("connection", async (socket) => {
         .from("messages")
         .select("room");
 
-    console.log(error);
-    console.log(roomsData);
-
     const uniqueRooms = [
         ...new Set(
             (roomsData || []).map(r => r.room)
@@ -52,9 +49,6 @@ io.on("connection", async (socket) => {
         const { data: updatedRoomsData } = await supabase
             .from("messages")
             .select("room");
-
-        console.log(error);
-        console.log(roomsData);
 
         const updatedRooms = [
             ...new Set(
