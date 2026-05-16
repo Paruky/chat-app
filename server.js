@@ -16,20 +16,23 @@ app.use(express.static("public"));
 io.on("connection", async (socket) => {
 
     const { data: roomsData } = await supabase
-        .from("messages")
-        .select("room");
+        .from("rooms")
+        .select("name");
 
-    const uniqueRooms = [
-        ...new Set(
-            (roomsData || []).map(r => r.room)
-        )
-    ];
+    const uniqueRooms = (roomsData || []).map(r => r.name);
 
     socket.emit(
         "room list",
         uniqueRooms
     );
 
+    await supabase
+    .from("rooms")
+    .upsert([
+        {
+            name: data.room
+        }
+    ]);
     socket.on("join room", async (data) => {
         if (socket.currentRoom) {
             socket.leave(socket.currentRoom);
@@ -47,14 +50,10 @@ io.on("connection", async (socket) => {
         socket.emit("message history", rows);
 
         const { data: updatedRoomsData } = await supabase
-            .from("messages")
-            .select("room");
+            .from("rooms")
+            .select("name");
 
-        const updatedRooms = [
-            ...new Set(
-                (updatedRoomsData || []).map(r => r.room)
-            )
-        ];
+        const updatedRooms = (updatedRoomsData || []).map(r => r.name);
 
         io.emit(
             "room list",
