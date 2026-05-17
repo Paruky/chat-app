@@ -73,7 +73,8 @@ io.on("connection", async (socket) => {
                     room: data.room,
                     userid: data.userId,
                     name: data.name,
-                    message: data.message
+                    message: data.message,
+                    avatar_url: data.avatar_url
                 }
             ]);
 

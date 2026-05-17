@@ -7,7 +7,6 @@ const supabaseClient = window.supabase.createClient(
 const roomList = document.getElementById("room-list");
 const form = document.getElementById("form");
 const input = document.getElementById("input");
-const nameInput = document.getElementById("name");
 const messages = document.getElementById("messages");
 const roomInput = document.getElementById("room");
 const joinBtn = document.getElementById("join-btn");
@@ -63,7 +62,8 @@ form.addEventListener("submit", (e) => {
         room: currentRoom,
         userId: user.id,
         name: user.user_metadata.user_name,
-        message: input.value
+        message: input.value,
+        avatar_url: user.user_metadata.avatar_url
     });
 
     input.value = "";
