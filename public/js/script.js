@@ -29,38 +29,40 @@ async function checkUser() {
 
     user = authUser;
 
+    console.log("USER:", user);
+
     if (!user) {
         login();
     }
 }
 
-checkUser();
+window.addEventListener("load", async () => {
+    await checkUser();
+});
 
 joinBtn.addEventListener("click", () => {
-    if (!roomInput.value || !nameInput.value) return;
+    if (!roomInput.value || !user) return;
 
     currentRoom = roomInput.value;
 
     document.getElementById("current-room-name").textContent =
         `# ${currentRoom}`;
 
-    localStorage.setItem("chatName", nameInput.value);
-
     socket.emit("join room", {
         room: currentRoom,
-        name: nameInput.value
+        name: user.user_metadata.user_name
     });
 });
 
 form.addEventListener("submit", (e) => {
     e.preventDefault();
 
-    if (!input.value || !nameInput.value || !currentRoom) return;
+    if (!input.value || !currentRoom || !user) return;
 
     socket.emit("chat message", {
         room: currentRoom,
         userId: user.id,
-        name: nameInput.value,
+        name: user.user_metadata.user_name,
         message: input.value
     });
 
