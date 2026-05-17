@@ -1,10 +1,8 @@
 const socket = io();
-
-let userId = localStorage.getItem("userId");
-if (!userId) {
-    userId = crypto.randomUUID();
-    localStorage.setItem("userId", userId);
-}
+const supabase = window.supabase.createClient(
+    "https://duowjfmjbvfknrvjygll.supabase.co",
+    "sb_publishable_L8q11jrtIKkNDfGJ4TqlmQ_3NghJgmg"
+);
 
 const roomList = document.getElementById("room-list");
 const form = document.getElementById("form");
@@ -15,6 +13,28 @@ const roomInput = document.getElementById("room");
 const joinBtn = document.getElementById("join-btn");
 
 let currentRoom = "";
+
+async function login() {
+    await supabase.auth.signInWithOAuth({
+        provider: "github"
+    });
+}
+
+let user = null;
+
+async function checkUser() {
+    const {
+        data: { user: authUser }
+    } = await supabase.auth.getUser();
+
+    user = authUser;
+
+    if (!user) {
+        login();
+    }
+}
+
+checkUser();
 
 joinBtn.addEventListener("click", () => {
     if (!roomInput.value || !nameInput.value) return;
@@ -39,7 +59,7 @@ form.addEventListener("submit", (e) => {
 
     socket.emit("chat message", {
         room: currentRoom,
-        userId,
+        userId: user.id,
         name: nameInput.value,
         message: input.value
     });
@@ -51,7 +71,7 @@ function addMessage(data) {
     const item = document.createElement("div");
     item.classList.add("message");
 
-    if (data.userId === userId) {
+    if (data.userId === user.id) {
         item.classList.add("my-message");
     }
 
