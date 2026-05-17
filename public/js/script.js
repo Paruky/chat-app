@@ -1,5 +1,5 @@
 const socket = io();
-const supabase = window.supabase.createClient(
+const supabaseClient = window.supabase.createClient(
     "https://duowjfmjbvfknrvjygll.supabase.co",
     "sb_publishable_L8q11jrtIKkNDfGJ4TqlmQ_3NghJgmg"
 );
@@ -15,7 +15,7 @@ const joinBtn = document.getElementById("join-btn");
 let currentRoom = "";
 
 async function login() {
-    await supabase.auth.signInWithOAuth({
+    await supabaseClient.auth.signInWithOAuth({
         provider: "github"
     });
 }
@@ -25,7 +25,7 @@ let user = null;
 async function checkUser() {
     const {
         data: { user: authUser }
-    } = await supabase.auth.getUser();
+    } = await supabaseClient.auth.getUser();
 
     user = authUser;
 
