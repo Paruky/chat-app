@@ -30,11 +30,16 @@ io.on("connection", async (socket) => {
     socket.on("join room", async (data) => {
         const { error: roomError } = await supabase
             .from("rooms")
-            .upsert([
+            .upsert(
+                [
+                    {
+                        name: data.room
+                    }
+                ],
                 {
-                    name: data.room
+                    onConflict: "name"
                 }
-            ]);
+            );
 
         console.log("ROOM ERROR:", roomError);
         if (socket.currentRoom) {
@@ -71,7 +76,7 @@ io.on("connection", async (socket) => {
             .insert([
                 {
                     room: data.room,
-                    userid: data.userId,
+                    userId: data.userId,
                     name: data.name,
                     message: data.message,
                     avatar_url: data.avatar_url

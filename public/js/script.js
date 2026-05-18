@@ -114,7 +114,7 @@ socket.on("room list", (rooms) => {
 
             socket.emit("join room", {
                 room,
-                name: nameInput.value
+                name: user.user_metadata.user_name
             });
 
         });
