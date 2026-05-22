@@ -34,17 +34,15 @@
         <div id="messages"></div>
 
         <form id="form">
-            <input type="text" name="dummy" style="display:none;"> <!-- スマホでEnterの自動送信を防止用のダミー -->
-            <input
+            <textarea
                 id="input"
-                autocomplete="off"
                 placeholder="メッセージを入力"
-                enterkeyhint="send"
-                autocapitalize="sentences"
-                autocorrect="on"
-                spellcheck="false"
-            />
-            <button>送信</button>
+                rows="1"
+            ></textarea>
+
+            <button type="submit">
+                送信
+            </button>
         </form>
 
     </div>

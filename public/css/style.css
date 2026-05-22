@@ -96,7 +96,7 @@ form {
     padding-bottom: calc(10px + env(safe-area-inset-bottom));
 }
 
-input {
+input, textarea {
     flex: 1;
     padding: 14px;
     border: none;
@@ -215,6 +215,12 @@ button {
 
 input:focus {
     border: 1px solid #007aff;
+}
+
+textarea {
+    resize: none;
+    max-height: 160px;
+    overflow-y: auto;
 }
 
 /* スクロールバー全体 */

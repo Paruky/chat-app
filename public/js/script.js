@@ -12,6 +12,14 @@ const supabaseClient = window.supabase.createClient(
 const roomList = document.getElementById("room-list");
 const form = document.getElementById("form");
 const input = document.getElementById("input");
+input.addEventListener("input", () => {
+
+    input.style.height = "auto";
+
+    input.style.height =
+        input.scrollHeight + "px";
+
+});
 const messages = document.getElementById("messages");
 const roomInput = document.getElementById("room");
 const joinBtn = document.getElementById("join-btn");
@@ -98,7 +106,20 @@ joinBtn.addEventListener("click", () => {
     });
 });
 
+input.addEventListener("keydown", (e) => {
 
+    if (e.isComposing) return;
+
+    // Shift + Enter で送信
+    if (e.key === "Enter" && e.shiftKey) {
+
+        e.preventDefault();
+
+        form.requestSubmit();
+
+    }
+
+});
 form.addEventListener("submit", (e) => {
     e.preventDefault();
 
