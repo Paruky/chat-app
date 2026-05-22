@@ -30,6 +30,11 @@ async function checkUser() {
 
     console.log("USER:", user);
 
+    if (!user) {
+        login();
+        return;
+    }
+
     document.getElementById("user-bar").innerHTML = `
         <img
             src="${user.user_metadata.avatar_url}"
@@ -40,10 +45,6 @@ async function checkUser() {
             ${user.user_metadata.user_name}
         </span>
     `;
-
-    if (!user) {
-        login();
-    }
 }
 
 window.addEventListener("load", async () => {
@@ -51,9 +52,11 @@ window.addEventListener("load", async () => {
 });
 
 joinBtn.addEventListener("click", () => {
-    if (!roomInput.value || !user) return;
+    const roomName = roomInput.value.trim();
 
-    currentRoom = roomInput.value;
+    if (!roomName || !user) return;
+
+    currentRoom = roomName;
 
     document.getElementById("current-room-name").textContent =
         `# ${currentRoom}`;
@@ -67,13 +70,15 @@ joinBtn.addEventListener("click", () => {
 form.addEventListener("submit", (e) => {
     e.preventDefault();
 
-    if (!input.value || !currentRoom || !user) return;
+    const message = input.value.trim();
+
+    if (!message || !currentRoom || !user) return;
 
     socket.emit("chat message", {
         room: currentRoom,
         userId: user.id,
         name: user.user_metadata.user_name,
-        message: input.value,
+        message: message,
         avatar_url: user.user_metadata.avatar_url
     });
 

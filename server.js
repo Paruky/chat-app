@@ -72,6 +72,7 @@ io.on("connection", async (socket) => {
     });
 
     socket.on("chat message", async (data) => {
+        if (!data.room || !data.message) return;
 
         const { data: insertedMessage, error: messageError } = await supabase
             .from("messages")
