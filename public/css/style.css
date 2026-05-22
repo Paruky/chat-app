@@ -205,7 +205,7 @@ body {
     padding: 0;
 }
 
-input,
+input, textarea,
 button {
     font-size: 16px;
     appearance: none;
@@ -213,7 +213,7 @@ button {
     outline: none;
 }
 
-input:focus {
+input:focus, textarea:focus {
     border: 1px solid #007aff;
 }
 
