@@ -25,10 +25,21 @@ async function checkUser() {
     const {
         data: { user: authUser }
     } = await supabaseClient.auth.getUser();
-
+    
     user = authUser;
 
     console.log("USER:", user);
+
+    document.getElementById("user-bar").innerHTML = `
+        <img
+            src="${user.user_metadata.avatar_url}"
+            class="user-avatar"
+        >
+
+        <span>
+            ${user.user_metadata.user_name}
+        </span>
+    `;
 
     if (!user) {
         login();
@@ -77,7 +88,38 @@ function addMessage(data) {
         item.classList.add("my-message");
     }
 
-    item.innerHTML = `<strong>${data.name}</strong><br>${data.message}`;
+    const time = new Date(data.created_at)
+        .toLocaleTimeString("ja-JP", {
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+
+    item.innerHTML = `
+    <div class="message-header">
+
+        <img
+            class="avatar"
+            src="${data.avatar_url}"
+        >
+
+        <div class="message-content">
+
+            <div class="message-top">
+                <strong>${data.name}</strong>
+
+                <span class="message-time">
+                    ${time}
+                </span>
+            </div>
+
+            <div class="message-text">
+                ${data.message}
+            </div>
+
+        </div>
+
+    </div>
+`;
 
     messages.appendChild(item);
     messages.scrollTop = messages.scrollHeight;

@@ -226,6 +226,60 @@ input:focus {
     background: var(--bg-message);
 }
 
+.message-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-bottom: 4px;
+}
+
+.message-time {
+    font-size: 12px;
+    color: var(--text-sub);
+}
+
+.message-text {
+    line-height: 1.4;
+}
+.message-header {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 50%;
+
+    flex-shrink: 0;
+}
+
+.message-content {
+    display: flex;
+    flex-direction: column;
+}
+#user-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 10px 16px;
+
+    background: var(--bg-card);
+
+    border-bottom: 1px solid var(--border);
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+
+    border-radius: 50%;
+}
+
 @media (max-width: 700px) {
     body {
         overflow: hidden;
