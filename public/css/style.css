@@ -259,6 +259,7 @@ textarea {
 
 .message-text {
     line-height: 1.4;
+    white-space: pre-wrap;
 }
 .message-header {
     display: flex;

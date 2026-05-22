@@ -136,6 +136,8 @@ form.addEventListener("submit", (e) => {
     });
 
     input.value = "";
+
+    input.style.height = "auto";
 });
 
 function addMessage(data) {
