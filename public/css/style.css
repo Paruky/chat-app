@@ -280,6 +280,22 @@ input:focus {
     border-radius: 50%;
 }
 
+#loading-screen {
+    position: fixed;
+    inset: 0;
+
+    background: #0f0f0f;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    z-index: 9999;
+
+    font-size: 20px;
+    font-weight: 700;
+}
+
 @media (max-width: 700px) {
     body {
         overflow: hidden;
