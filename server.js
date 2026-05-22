@@ -41,7 +41,9 @@ io.on("connection", async (socket) => {
                 }
             );
 
-        console.log("ROOM ERROR:", roomError);
+        if (roomError) {
+            console.log("ROOM ERROR:", roomError);
+        }
         if (socket.currentRoom) {
             socket.leave(socket.currentRoom);
         }
@@ -71,7 +73,7 @@ io.on("connection", async (socket) => {
 
     socket.on("chat message", async (data) => {
 
-        const { error: messageError } = await supabase
+        const { data: insertedMessage, error: messageError } = await supabase
             .from("messages")
             .insert([
                 {
@@ -81,11 +83,18 @@ io.on("connection", async (socket) => {
                     message: data.message,
                     avatar_url: data.avatar_url
                 }
-            ]);
+            ])
+            .select()
+            .single();
 
-        console.log("MESSAGE ERROR:", messageError);
+        if (messageError) {
+            console.log("MESSAGE ERROR:", messageError);
+        }
 
-        io.to(data.room).emit("chat message", data);
+        io.to(data.room).emit(
+            "chat message",
+            insertedMessage
+        );
     });
 });
 
