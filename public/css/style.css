@@ -236,7 +236,7 @@ input:focus {
 
 .message-time {
     font-size: 12px;
-    color: var(--text-sub);
+    color: var(--text-main);
 }
 
 .message-text {
