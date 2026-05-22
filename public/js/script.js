@@ -68,7 +68,7 @@ async function checkUser() {
             name: user.user_metadata.user_name
         });
     }
-    
+
     document.getElementById(
         "loading-screen"
     ).style.display = "none";
@@ -99,19 +99,6 @@ joinBtn.addEventListener("click", () => {
 });
 
 
-input.addEventListener("keydown", (e) => {
-
-    if (e.isComposing) return;
-
-    if (e.key === "Enter") {
-
-        e.preventDefault();
-
-        form.requestSubmit();
-
-    }
-
-});
 form.addEventListener("submit", (e) => {
     e.preventDefault();
 
