@@ -1,4 +1,9 @@
-const socket = io();
+const socket = io({
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000
+});
 const supabaseClient = window.supabase.createClient(
     "https://duowjfmjbvfknrvjygll.supabase.co",
     "sb_publishable_L8q11jrtIKkNDfGJ4TqlmQ_3NghJgmg"
@@ -45,6 +50,24 @@ async function checkUser() {
             ${user.user_metadata.user_name}
         </span>
     `;
+    const savedRoom =
+    localStorage.getItem("lastRoom");
+
+    if (savedRoom) {
+
+        currentRoom = savedRoom;
+
+        roomInput.value = savedRoom;
+
+        document.getElementById(
+            "current-room-name"
+        ).textContent = `# ${savedRoom}`;
+
+        socket.emit("join room", {
+            room: savedRoom,
+            name: user.user_metadata.user_name
+        });
+    }
 }
 
 window.addEventListener("load", async () => {
@@ -57,6 +80,10 @@ joinBtn.addEventListener("click", () => {
     if (!roomName || !user) return;
 
     currentRoom = roomName;
+    localStorage.setItem(
+        "lastRoom",
+        currentRoom
+    );
 
     document.getElementById("current-room-name").textContent =
         `# ${currentRoom}`;
@@ -154,6 +181,10 @@ socket.on("room list", (rooms) => {
             item.classList.add("active");
 
             currentRoom = room;
+            localStorage.setItem(
+                "lastRoom",
+                currentRoom
+            );
             roomInput.value = room;
 
             document.getElementById("current-room-name").textContent =
@@ -168,6 +199,14 @@ socket.on("room list", (rooms) => {
 
         roomList.appendChild(item);
     });
+});
+
+socket.on("connect", () => {
+    console.log("接続");
+});
+
+socket.on("disconnect", () => {
+    console.log("切断");
 });
 
 if ("serviceWorker" in navigator) {
