@@ -61,8 +61,8 @@ body {
 
 .message {
     max-width: 80%;
+
     width: fit-content;
-    min-width: 120px;
 
     padding: 12px;
     border-radius: var(--radius);
@@ -70,18 +70,23 @@ body {
     background: var(--bg-message);
 
     word-break: break-word;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
+
     animation: messageIn 0.15s ease;
 }
 @keyframes messageIn {
     from {
         opacity: 0;
-        transform: translateY(8px), translateX(-50%), scale(0.8);
+        transform:
+            translateY(8px)
+            scale(0.98);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0), translateX(0), scale(1);
+        transform:
+            translateY(0)
+            scale(1);
     }
 }
 
