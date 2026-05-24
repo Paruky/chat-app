@@ -111,8 +111,18 @@ input.addEventListener("keydown", (e) => {
     // 日本語変換中は無視
     if (e.isComposing) return;
 
-    // Enterのみ → 送信
-    if (e.key === "Enter" && !e.shiftKey) {
+    // スマホ判定
+    const isMobile =
+        /iPhone|Android|iPad/i.test(
+            navigator.userAgent
+        );
+
+    // PCのみ Enter送信
+    if (
+        !isMobile &&
+        e.key === "Enter" &&
+        !e.shiftKey
+    ) {
 
         e.preventDefault();
 
@@ -120,7 +130,6 @@ input.addEventListener("keydown", (e) => {
 
     }
 
-    // Shift + Enter → 改行
 });
 
 form.addEventListener("submit", (e) => {
