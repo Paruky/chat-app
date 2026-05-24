@@ -21,6 +21,12 @@ input.addEventListener("input", () => {
 
 });
 const messages = document.getElementById("messages");
+const newMessageBtn =
+    document.getElementById(
+        "new-message-btn"
+    );
+
+let unreadCount = 0;
 let shouldAutoScroll = true;
 const roomInput = document.getElementById("room");
 const joinBtn = document.getElementById("join-btn");
@@ -38,6 +44,17 @@ messages.addEventListener("scroll", () => {
         < threshold;
 
     shouldAutoScroll = isNearBottom;
+
+    // 下まで来たらボタン消す
+    if (isNearBottom) {
+
+        unreadCount = 0;
+
+        newMessageBtn.classList.remove(
+            "show"
+        );
+
+    }
 
 });
 
@@ -230,14 +247,29 @@ function addMessage(data, scroll = true) {
 
     messages.appendChild(item);
 
-    if (scroll && shouldAutoScroll) {
+    if (scroll) {
 
-        requestAnimationFrame(() => {
+        if (shouldAutoScroll) {
 
-            messages.scrollTop =
-                messages.scrollHeight;
+            requestAnimationFrame(() => {
 
-        });
+                messages.scrollTop =
+                    messages.scrollHeight;
+
+            });
+
+        } else {
+
+            unreadCount++;
+
+            newMessageBtn.textContent =
+                `⬇ 新着メッセージ (${unreadCount})`;
+
+            newMessageBtn.classList.add(
+                "show"
+            );
+
+        }
 
     }
 }
@@ -297,6 +329,19 @@ socket.on("room list", (rooms) => {
 
         roomList.appendChild(item);
     });
+});
+
+newMessageBtn.addEventListener("click", () => {
+
+    messages.scrollTop =
+        messages.scrollHeight;
+
+    unreadCount = 0;
+
+    newMessageBtn.classList.remove(
+        "show"
+    );
+
 });
 
 socket.on("connect", () => {
