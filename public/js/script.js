@@ -108,10 +108,11 @@ joinBtn.addEventListener("click", () => {
 
 input.addEventListener("keydown", (e) => {
 
+    // 日本語変換中は無視
     if (e.isComposing) return;
 
-    // Shift + Enter で送信
-    if (e.key === "Enter" && e.shiftKey) {
+    // Enterのみ → 送信
+    if (e.key === "Enter" && !e.shiftKey) {
 
         e.preventDefault();
 
@@ -119,7 +120,9 @@ input.addEventListener("keydown", (e) => {
 
     }
 
+    // Shift + Enter → 改行
 });
+
 form.addEventListener("submit", (e) => {
     e.preventDefault();
 
