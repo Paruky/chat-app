@@ -141,6 +141,7 @@ form.addEventListener("submit", (e) => {
 });
 
 function addMessage(data) {
+
     const item = document.createElement("div");
     item.classList.add("message");
 
@@ -154,33 +155,53 @@ function addMessage(data) {
             minute: "2-digit"
         });
 
-    item.innerHTML = `
-    <div class="message-header">
+    // ヘッダー
+    const header = document.createElement("div");
+    header.className = "message-header";
 
-        <img
-            class="avatar"
-            src="${data.avatar_url}"
-        >
+    // アイコン
+    const avatar = document.createElement("img");
+    avatar.className = "avatar";
+    avatar.src = data.avatar_url;
 
-        <div class="message-content">
+    // コンテンツ全体
+    const content = document.createElement("div");
+    content.className = "message-content";
 
-            <div class="message-top">
-                <strong>${data.name}</strong>
+    // 上部分
+    const top = document.createElement("div");
+    top.className = "message-top";
 
-                <span class="message-time">
-                    ${time}
-                </span>
-            </div>
+    const name = document.createElement("strong");
+    name.textContent = data.name;
 
-            <div class="message-text">${data.message}</div>
+    const timeSpan = document.createElement("span");
+    timeSpan.className = "message-time";
+    timeSpan.textContent = time;
 
-        </div>
+    top.appendChild(name);
+    top.appendChild(timeSpan);
 
-    </div>
-`;
+    // メッセージ本文
+    const text = document.createElement("div");
+    text.className = "message-text";
+
+    // ここが超重要
+    text.textContent = data.message;
+
+    // 組み立て
+    content.appendChild(top);
+    content.appendChild(text);
+
+    header.appendChild(avatar);
+    header.appendChild(content);
+
+    item.appendChild(header);
 
     messages.appendChild(item);
-    messages.scrollTop = messages.scrollHeight;
+
+    messages.scrollTop =
+        messages.scrollHeight;
 }
 
 socket.on("chat message", addMessage);

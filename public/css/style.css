@@ -72,14 +72,17 @@ body {
     word-break: break-word;
     overflow-wrap: anywhere;
 
-    animation: messageIn 0.15s ease;
+    overflow: hidden;
+
+    animation: messageIn 0.3s ease;
 }
+
 @keyframes messageIn {
     from {
         opacity: 0;
         transform:
             translateY(8px)
-            scale(0.98);
+            scale(0.8);
     }
 
     to {
