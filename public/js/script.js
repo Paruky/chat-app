@@ -21,6 +21,7 @@ input.addEventListener("input", () => {
 
 });
 const messages = document.getElementById("messages");
+let shouldAutoScroll = true;
 const roomInput = document.getElementById("room");
 const joinBtn = document.getElementById("join-btn");
 
@@ -84,6 +85,20 @@ async function checkUser() {
 
 window.addEventListener("load", async () => {
     await checkUser();
+});
+
+messages.addEventListener("scroll", () => {
+
+    const threshold = 120;
+
+    const isNearBottom =
+        messages.scrollHeight -
+        messages.scrollTop -
+        messages.clientHeight
+        < threshold;
+
+    shouldAutoScroll = isNearBottom;
+
 });
 
 joinBtn.addEventListener("click", () => {
@@ -212,8 +227,12 @@ function addMessage(data) {
 
     messages.appendChild(item);
 
-    messages.scrollTop =
-        messages.scrollHeight;
+    if (shouldAutoScroll) {
+
+        messages.scrollTop =
+            messages.scrollHeight;
+
+    }
 }
 
 socket.on("chat message", addMessage);
