@@ -326,27 +326,33 @@ textarea {
 #new-message-btn {
     position: absolute;
 
-    right: 20px;
+    left: 50%;
     bottom: 90px;
 
-    background: var(--accent);
+    transform:
+        translateX(-50%)
+        translateY(10px);
+
+    background: rgba(40, 40, 40, 0.92);
+
+    backdrop-filter: blur(12px);
 
     color: white;
 
-    border: none;
+    border: 1px solid rgba(255,255,255,0.08);
+
     border-radius: 999px;
 
-    padding: 10px 14px;
+    padding: 10px 16px;
 
     font-size: 14px;
     font-weight: 600;
 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow:
+        0 4px 16px rgba(0,0,0,0.35);
 
     opacity: 0;
     pointer-events: none;
-
-    transform: translateY(10px);
 
     transition:
         opacity 0.2s ease,
@@ -360,7 +366,13 @@ textarea {
 
     pointer-events: auto;
 
-    transform: translateY(0);
+    transform:
+        translateX(-50%)
+        translateY(0);
+}
+
+#new-message-btn:hover {
+    background: rgba(55, 55, 55, 0.95);
 }
 
 @media (max-width: 700px) {
