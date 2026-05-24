@@ -170,7 +170,7 @@ form.addEventListener("submit", (e) => {
     input.style.height = "auto";
 });
 
-function addMessage(data) {
+function addMessage(data, scroll = true) {
 
     const item = document.createElement("div");
     item.classList.add("message");
@@ -230,10 +230,14 @@ function addMessage(data) {
 
     messages.appendChild(item);
 
-    if (shouldAutoScroll) {
+    if (scroll && shouldAutoScroll) {
 
-        messages.scrollTop =
-            messages.scrollHeight;
+        requestAnimationFrame(() => {
+
+            messages.scrollTop =
+                messages.scrollHeight;
+
+        });
 
     }
 }
@@ -241,8 +245,21 @@ function addMessage(data) {
 socket.on("chat message", addMessage);
 
 socket.on("message history", (data) => {
+
     messages.innerHTML = "";
-    data.forEach(addMessage);
+
+    data.forEach((message) => {
+        addMessage(message, false);
+    });
+
+    // 履歴読み込み時だけ最下部へ
+    requestAnimationFrame(() => {
+
+        messages.scrollTop =
+            messages.scrollHeight;
+
+    });
+
 });
 
 socket.on("room list", (rooms) => {
