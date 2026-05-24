@@ -266,6 +266,7 @@ textarea {
 .message-text {
     line-height: 1.4;
     white-space: pre-wrap;
+    word-break: break-word;
 }
 .message-header {
     display: flex;
