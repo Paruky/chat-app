@@ -196,11 +196,63 @@ function addMessage(data, scroll = true) {
         item.classList.add("my-message");
     }
 
-    const time = new Date(data.created_at)
-        .toLocaleTimeString("ja-JP", {
-            hour: "2-digit",
-            minute: "2-digit"
-        });
+    const date = new Date(data.created_at);
+
+    const now = new Date();
+
+    const isToday =
+        date.toDateString() ===
+        now.toDateString();
+
+    const yesterday = new Date();
+
+    yesterday.setDate(
+        yesterday.getDate() - 1
+    );
+
+    const isYesterday =
+        date.toDateString() ===
+        yesterday.toDateString();
+
+    let time = "";
+
+    const hourMinute =
+        date.toLocaleTimeString(
+            "ja-JP",
+            {
+                hour: "2-digit",
+                minute: "2-digit"
+            }
+        );
+
+    if (isToday) {
+
+        time = hourMinute;
+
+    } else if (isYesterday) {
+
+        time = `昨日 ${hourMinute}`;
+
+    } else if (
+        date.getFullYear() ===
+        now.getFullYear()
+    ) {
+
+        time =
+            `${date.getMonth() + 1}/` +
+            `${date.getDate()} ` +
+            hourMinute;
+
+    } else {
+
+        time =
+            `${date.getFullYear()}/` +
+            `${date.getMonth() + 1}/` +
+            `${date.getDate()} ` +
+            hourMinute;
+
+    }
+
 
     // ヘッダー
     const header = document.createElement("div");
