@@ -27,6 +27,21 @@ const joinBtn = document.getElementById("join-btn");
 
 let currentRoom = "";
 
+messages.addEventListener("scroll", () => {
+
+    const threshold = 120;
+
+    const isNearBottom =
+        messages.scrollHeight -
+        messages.scrollTop -
+        messages.clientHeight
+        < threshold;
+
+    shouldAutoScroll = isNearBottom;
+
+});
+
+
 async function login() {
     await supabaseClient.auth.signInWithOAuth({
         provider: "github"
@@ -87,19 +102,7 @@ window.addEventListener("load", async () => {
     await checkUser();
 });
 
-messages.addEventListener("scroll", () => {
 
-    const threshold = 120;
-
-    const isNearBottom =
-        messages.scrollHeight -
-        messages.scrollTop -
-        messages.clientHeight
-        < threshold;
-
-    shouldAutoScroll = isNearBottom;
-
-});
 
 joinBtn.addEventListener("click", () => {
     const roomName = roomInput.value.trim();
