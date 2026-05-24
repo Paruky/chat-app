@@ -172,9 +172,7 @@ function addMessage(data) {
                 </span>
             </div>
 
-            <div class="message-text">
-                ${data.message}
-            </div>
+            <div class="message-text">${data.message}</div>
 
         </div>
 
