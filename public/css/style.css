@@ -375,6 +375,29 @@ textarea {
     background: rgba(55, 55, 55, 0.95);
 }
 
+#typing-indicator {
+    height: 24px;
+
+    padding-left: 16px;
+
+    font-size: 14px;
+
+    color: var(--text-sub);
+
+    display: flex;
+    align-items: center;
+
+    flex-shrink: 0;
+
+    opacity: 0;
+
+    transition: opacity 0.15s ease;
+}
+
+#typing-indicator.show {
+    opacity: 1;
+}
+
 @media (max-width: 700px) {
     body {
         overflow: hidden;

@@ -70,7 +70,22 @@ io.on("connection", async (socket) => {
             updatedRooms
         );
     });
+    socket.on("typing", (data) => {
 
+        socket.to(data.room).emit(
+            "typing",
+            data.name
+        );
+
+    });
+
+    socket.on("stop typing", (data) => {
+
+        socket.to(data.room).emit(
+            "stop typing"
+        );
+
+    });
     socket.on("chat message", async (data) => {
         if (!data.room || !data.message) return;
 

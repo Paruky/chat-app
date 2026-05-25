@@ -18,7 +18,31 @@ input.addEventListener("input", () => {
 
     input.style.height =
         input.scrollHeight + "px";
+        // 入力開始通知
+    if (!isTyping && currentRoom) {
 
+        isTyping = true;
+
+        socket.emit("typing", {
+            room: currentRoom,
+            name: user.user_metadata.user_name
+        });
+
+    }
+
+    // タイマーリセット
+    clearTimeout(typingTimeout);
+
+    // 1秒入力なければ停止
+    typingTimeout = setTimeout(() => {
+
+        isTyping = false;
+
+        socket.emit("stop typing", {
+            room: currentRoom
+        });
+
+    }, 1000);
 });
 const messages = document.getElementById("messages");
 const newMessageBtn =
@@ -30,6 +54,14 @@ let unreadCount = 0;
 let shouldAutoScroll = true;
 const roomInput = document.getElementById("room");
 const joinBtn = document.getElementById("join-btn");
+const typingIndicator =
+    document.getElementById(
+        "typing-indicator"
+    );
+
+let typingTimeout = null;
+
+let isTyping = false;
 
 let currentRoom = "";
 
@@ -183,6 +215,11 @@ form.addEventListener("submit", (e) => {
     });
 
     input.value = "";
+    isTyping = false;
+
+    socket.emit("stop typing", {
+        room: currentRoom
+    });
 
     input.style.height = "auto";
 });
@@ -391,6 +428,25 @@ newMessageBtn.addEventListener("click", () => {
     unreadCount = 0;
 
     newMessageBtn.classList.remove(
+        "show"
+    );
+
+});
+
+socket.on("typing", (name) => {
+
+    typingIndicator.textContent =
+        `${name} が入力中...`;
+
+    typingIndicator.classList.add(
+        "show"
+    );
+
+});
+
+socket.on("stop typing", () => {
+
+    typingIndicator.classList.remove(
         "show"
     );
 
