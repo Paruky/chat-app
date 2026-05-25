@@ -25,16 +25,17 @@ input.addEventListener("input", () => {
 
         socket.emit("typing", {
             room: currentRoom,
-            name: user.user_metadata.user_name
+            name: user.user_metadata.user_name,
+            avatar_url:
+                user.user_metadata.avatar_url
         });
 
     }
 
-    // タイマーリセット
-    clearTimeout(typingTimeout);
-
-    // 1秒入力なければ停止
-    typingTimeout = setTimeout(() => {
+    if (
+        input.value.trim() === ""
+        && isTyping
+    ) {
 
         isTyping = false;
 
@@ -42,7 +43,7 @@ input.addEventListener("input", () => {
             room: currentRoom
         });
 
-    }, 1000);
+    }
 });
 const messages = document.getElementById("messages");
 const newMessageBtn =
@@ -433,10 +434,32 @@ newMessageBtn.addEventListener("click", () => {
 
 });
 
-socket.on("typing", (name) => {
+socket.on("typing", (data) => {
 
-    typingIndicator.textContent =
-        `${name} が入力中...`;
+    typingIndicator.innerHTML = `
+        <div class="typing-content">
+
+            <img
+                class="typing-avatar"
+                src="${data.avatar_url}"
+            >
+
+            <div class="typing-texts">
+
+                <div class="typing-name">
+                    ${data.name}
+                </div>
+
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+
+            </div>
+
+        </div>
+    `;
 
     typingIndicator.classList.add(
         "show"

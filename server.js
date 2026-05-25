@@ -74,7 +74,7 @@ io.on("connection", async (socket) => {
 
         socket.to(data.room).emit(
             "typing",
-            data.name
+            data
         );
 
     });
