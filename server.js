@@ -111,6 +111,13 @@ io.on("connection", async (socket) => {
             "chat message",
             insertedMessage
         );
+        socket.broadcast.emit(
+            "new message notification",
+            {
+                room: data.room,
+                userId: data.userId
+            }
+        );
     });
 });
 

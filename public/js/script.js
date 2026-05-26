@@ -157,6 +157,7 @@ async function checkUser() {
             room: savedRoom,
             name: user.user_metadata.user_name
         });
+        markRoomAsRead(savedRoom);
     }
 
     document.getElementById(
@@ -176,11 +177,9 @@ joinBtn.addEventListener("click", () => {
     if (!roomName || !user) return;
 
     currentRoom = roomName;
-    unreadCounts[roomName] = 0;
 
-    saveUnreadCounts();
+    markRoomAsRead(roomName);
 
-    updateRoomBadges();
     localStorage.setItem(
         "lastRoom",
         currentRoom
@@ -359,20 +358,6 @@ function addMessage(data, scroll = true) {
     item.appendChild(header);
 
     messages.appendChild(item);
-    if (
-        !isCurrentRoom &&
-        data.userId !== user.id
-    ) {
-
-        unreadCounts[data.room] =
-            (unreadCounts[data.room] || 0)
-            + 1;
-
-        saveUnreadCounts();
-
-        updateRoomBadges();
-
-    }
 
     if (scroll) {
 
@@ -444,11 +429,8 @@ socket.on("room list", (rooms) => {
 
             item.classList.add("active");
 
-            unreadCounts[room] = 0;
+            markRoomAsRead(room);
 
-            saveUnreadCounts();
-
-            updateRoomBadges();
             localStorage.setItem(
                 "lastRoom",
                 currentRoom
@@ -564,6 +546,36 @@ function updateRoomBadges() {
             }
 
         });
+
+}
+
+socket.on(
+    "new message notification",
+    (data) => {
+
+        // 今いる部屋なら未読にしない
+        if (data.room === currentRoom) {
+            return;
+        }
+
+        unreadCounts[data.room] =
+            (unreadCounts[data.room] || 0)
+            + 1;
+
+        saveUnreadCounts();
+
+        updateRoomBadges();
+
+    }
+);
+
+function markRoomAsRead(room) {
+
+    unreadCounts[room] = 0;
+
+    saveUnreadCounts();
+
+    updateRoomBadges();
 
 }
 
