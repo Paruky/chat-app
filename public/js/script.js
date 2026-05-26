@@ -65,6 +65,22 @@ let typingTimeout = null;
 let isTyping = false;
 
 let currentRoom = "";
+let unreadCounts =
+    JSON.parse(
+        localStorage.getItem(
+            "unreadCounts"
+        )
+    ) || {};
+    function saveUnreadCounts() {
+
+    localStorage.setItem(
+        "unreadCounts",
+        JSON.stringify(
+            unreadCounts
+        )
+    );
+
+}
 
 messages.addEventListener("scroll", () => {
 
@@ -160,6 +176,11 @@ joinBtn.addEventListener("click", () => {
     if (!roomName || !user) return;
 
     currentRoom = roomName;
+    unreadCounts[roomName] = 0;
+
+    saveUnreadCounts();
+
+    updateRoomBadges();
     localStorage.setItem(
         "lastRoom",
         currentRoom
@@ -226,6 +247,8 @@ form.addEventListener("submit", (e) => {
 });
 
 function addMessage(data, scroll = true) {
+    const isCurrentRoom =
+        data.room === currentRoom;
 
     const item = document.createElement("div");
     item.classList.add("message");
@@ -336,6 +359,20 @@ function addMessage(data, scroll = true) {
     item.appendChild(header);
 
     messages.appendChild(item);
+    if (
+        !isCurrentRoom &&
+        data.userId !== user.id
+    ) {
+
+        unreadCounts[data.room] =
+            (unreadCounts[data.room] || 0)
+            + 1;
+
+        saveUnreadCounts();
+
+        updateRoomBadges();
+
+    }
 
     if (scroll) {
 
@@ -390,7 +427,14 @@ socket.on("room list", (rooms) => {
     rooms.forEach((room) => {
         const item = document.createElement("div");
         item.classList.add("room-item");
-        item.textContent = room;
+        item.dataset.room = room;
+
+        const roomName =
+            document.createElement("span");
+
+        roomName.textContent = room;
+
+        item.appendChild(roomName);
 
         item.addEventListener("click", () => {
 
@@ -400,7 +444,11 @@ socket.on("room list", (rooms) => {
 
             item.classList.add("active");
 
-            currentRoom = room;
+            unreadCounts[room] = 0;
+
+            saveUnreadCounts();
+
+            updateRoomBadges();
             localStorage.setItem(
                 "lastRoom",
                 currentRoom
@@ -418,6 +466,7 @@ socket.on("room list", (rooms) => {
         });
 
         roomList.appendChild(item);
+        updateRoomBadges();
     });
 });
 
@@ -474,6 +523,49 @@ socket.on("stop typing", () => {
     );
 
 });
+function updateRoomBadges() {
+
+    document
+        .querySelectorAll(".room-item")
+        .forEach((item) => {
+
+            const roomName =
+                item.dataset.room;
+
+            const count =
+                unreadCounts[roomName] || 0;
+
+            const oldBadge =
+                item.querySelector(
+                    ".unread-badge"
+                );
+
+            if (oldBadge) {
+                oldBadge.remove();
+            }
+
+            if (count > 0) {
+
+                const badge =
+                    document.createElement(
+                        "div"
+                    );
+
+                badge.className =
+                    "unread-badge";
+
+                badge.textContent =
+                    count;
+
+                item.appendChild(
+                    badge
+                );
+
+            }
+
+        });
+
+}
 
 socket.on("connect", () => {
     console.log("接続");
