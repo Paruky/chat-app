@@ -57,6 +57,7 @@ body {
     -webkit-overflow-scrolling: touch;
 
     min-height: 0;
+    padding-bottom: 20px;
 }
 
 .message {
@@ -97,8 +98,8 @@ form {
     background: var(--bg-sidebar);
     gap: 10px;
 
-    position: sticky;
-    bottom: 0;
+    position: relative;
+    z-index: 20;
 
     padding-bottom: calc(10px + env(safe-area-inset-bottom));
 }
