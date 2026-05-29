@@ -32,3 +32,8 @@
 - 返信機能
 - 画像送信
 - URL自動リンク
+
+## 開発環境起動
+
+npm install
+npm run dev
