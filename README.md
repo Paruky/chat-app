@@ -35,5 +35,10 @@
 
 ## 開発環境起動
 
-npm install
-npm run dev
+- npm install
+- npm run dev
+
+## 使用サービス
+
+- Supabase realtime
+- Render deploy
