@@ -1,5 +1,11 @@
 import { SOCKET_OPTIONS, SUPABASE_CONFIG, LIMITS } from "./config.mjs";
-import { elements, setCurrentRoomName, setLoading, setUserBar } from "./dom.mjs";
+import {
+    elements,
+    setAppVersion,
+    setCurrentRoomName,
+    setLoading,
+    setUserBar
+} from "./dom.mjs";
 import {
     appendMessage,
     hideNewMessageButton,
@@ -20,6 +26,7 @@ import {
     setupTypingInput,
     showTypingIndicator
 } from "./typing.mjs";
+import { APP_VERSION } from "./version.mjs";
 
 const socket = window.io(SOCKET_OPTIONS);
 const supabaseClient = window.supabase.createClient(
@@ -35,6 +42,8 @@ const state = {
     visibleUnreadCount: 0,
     shouldAutoScroll: true
 };
+
+setAppVersion(APP_VERSION);
 
 function cleanText(value, maxLength) {
     return String(value || "").trim().slice(0, maxLength);

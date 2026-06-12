@@ -19,7 +19,8 @@ export const elements = {
     joinButton: byId("join-btn"),
     typingIndicator: byId("typing-indicator"),
     currentRoomName: byId("current-room-name"),
-    userBar: byId("user-bar")
+    userBar: byId("user-bar"),
+    appVersion: byId("app-version")
 };
 
 export function setLoading(isLoading) {
@@ -46,4 +47,8 @@ export function setUserBar(profile) {
     name.textContent = profile.name;
 
     elements.userBar.append(avatar, name);
+}
+
+export function setAppVersion(version) {
+    elements.appVersion.textContent = version;
 }

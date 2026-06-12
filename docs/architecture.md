@@ -12,6 +12,7 @@
 - `public/js/rooms.mjs` renders the room list and unread badges.
 - `public/js/typing.mjs` owns typing indicators.
 - `public/js/storage.mjs` owns localStorage access.
+- `public/js/version.mjs` owns the visible app version.
 
 ## Adding features
 
@@ -19,6 +20,8 @@
 2. Add realtime events in `server/socketHandlers.js`.
 3. Add browser behavior in a focused file under `public/js/`.
 4. Wire the new feature from `public/js/app.mjs`.
+
+Before pushing a visible update, check `docs/versioning.md` and update the version when it feels right.
 
 ## Current next items
 

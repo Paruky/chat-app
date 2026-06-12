@@ -2,6 +2,7 @@
 
 ## Stability
 
+- Keep bumping the visible version before push-worthy updates.
 - Keep checking iOS PWA send-button behavior.
 - Show a friendly error when a room join or message send fails.
 - Add a small browser test for joining a room and sending a message.
