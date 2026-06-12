@@ -1,0 +1,29 @@
+const path = require("path");
+
+function readConfig() {
+    return {
+        port: process.env.PORT || 3000,
+        host: process.env.HOST || "",
+        publicDir: path.join(__dirname, "..", "public"),
+        supabaseUrl: process.env.SUPABASE_URL,
+        supabaseKey: process.env.SUPABASE_KEY,
+        maxRoomNameLength: Number(process.env.MAX_ROOM_NAME_LENGTH || 40),
+        maxMessageLength: Number(process.env.MAX_MESSAGE_LENGTH || 2000)
+    };
+}
+
+function validateConfig(config) {
+    const missing = [];
+
+    if (!config.supabaseUrl) missing.push("SUPABASE_URL");
+    if (!config.supabaseKey) missing.push("SUPABASE_KEY");
+
+    if (missing.length > 0) {
+        throw new Error(`Missing environment variables: ${missing.join(", ")}`);
+    }
+}
+
+module.exports = {
+    readConfig,
+    validateConfig
+};
