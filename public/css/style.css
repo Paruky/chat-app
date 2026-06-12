@@ -76,6 +76,12 @@ body {
     animation: messageIn 0.3s ease;
 }
 
+.my-message {
+    margin-left: auto;
+    background: var(--accent);
+    touch-action: pan-y;
+}
+
 @keyframes messageIn {
     from {
         opacity: 0;
@@ -122,11 +128,6 @@ button {
     color: white;
     cursor: pointer;
     flex-shrink: 0;
-}
-
-.my-message {
-    margin-left: auto;
-    background: var(--accent);
 }
 
 .system-message {
@@ -320,6 +321,107 @@ textarea {
 .message-content {
     display: flex;
     flex-direction: column;
+}
+
+.message-action-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+}
+
+.message-action-layer[hidden] {
+    display: none;
+}
+
+.message-action-scrim {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgba(0, 0, 0, 0.18);
+    cursor: default;
+}
+
+.message-action-menu {
+    position: absolute;
+    min-width: 180px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    background: rgba(34, 34, 34, 0.96);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(18px);
+}
+
+.message-action-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.message-action-item {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-main);
+    text-align: left;
+}
+
+.message-action-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.message-edit-panel {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    width: min(420px, calc(100vw - 32px));
+    display: none;
+    transform: translate(-50%, -50%);
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px;
+    background: rgba(34, 34, 34, 0.98);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(18px);
+}
+
+.message-action-layer.editing .message-action-menu {
+    display: none;
+}
+
+.message-action-layer.editing .message-edit-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.message-edit-title {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.message-edit-input {
+    width: 100%;
+    flex: none;
+    min-height: 112px;
+}
+
+.message-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.message-edit-cancel {
+    background: var(--bg-message);
+}
+
+.message-edit-save {
+    background: var(--accent);
 }
 #user-bar {
     display: flex;
@@ -588,6 +690,30 @@ textarea {
 
     form {
         flex-wrap: nowrap;
+    }
+
+    .message-action-layer.mobile .message-action-scrim {
+        background: rgba(0, 0, 0, 0.32);
+    }
+
+    .message-action-layer.mobile .message-action-menu {
+        left: 10px;
+        right: 10px;
+        top: auto;
+        bottom: calc(12px + env(safe-area-inset-bottom));
+        min-width: 0;
+        border-radius: 18px;
+    }
+
+    .message-action-layer.mobile .message-action-item {
+        text-align: center;
+        font-size: 17px;
+    }
+
+    .message-edit-panel {
+        top: auto;
+        bottom: calc(12px + env(safe-area-inset-bottom));
+        transform: translateX(-50%);
     }
 
 }

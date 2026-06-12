@@ -15,9 +15,9 @@
 
 ## Messages
 
-- Consider message edit/delete.
 - Consider image upload.
 - Consider reactions.
+- Consider message delete.
 
 ## Notifications
 

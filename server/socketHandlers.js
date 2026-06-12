@@ -4,6 +4,12 @@ function createTextCleaner(maxLength) {
     };
 }
 
+function cleanMessageId(value) {
+    const id = String(value || "").trim();
+
+    return id && id.length <= 80 ? id : null;
+}
+
 function logSocketError(action, error) {
     console.error(`[socket:${action}]`, error);
 }
@@ -103,6 +109,31 @@ function registerSocketHandlers(io, dependencies) {
                 logSocketError("chat-message", error);
                 socket.emit("server error", {
                     message: "メッセージを送信できませんでした"
+                });
+            }
+        });
+
+        socket.on("edit message", async (data = {}) => {
+            const id = cleanMessageId(data.id);
+            const room = cleanRoomName(data.room);
+            const userId = String(data.userId || "");
+            const message = cleanMessage(data.message);
+
+            if (!id || !room || !userId || !message) return;
+
+            try {
+                const updatedMessage = await messagesRepository.updateMessage({
+                    id,
+                    room,
+                    userId,
+                    message
+                });
+
+                io.to(room).emit("message edited", updatedMessage);
+            } catch (error) {
+                logSocketError("edit-message", error);
+                socket.emit("server error", {
+                    message: "メッセージを編集できませんでした"
                 });
             }
         });

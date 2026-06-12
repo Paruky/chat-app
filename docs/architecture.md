@@ -9,6 +9,7 @@
 - `server/socketHandlers.js` owns realtime chat events.
 - `public/js/app.mjs` wires the browser app together.
 - `public/js/messages.mjs` renders chat messages.
+- `public/js/messageActions.mjs` owns the right-click and long-press message action menu.
 - `public/js/rooms.mjs` renders the room list and unread badges.
 - `public/js/typing.mjs` owns typing indicators.
 - `public/js/storage.mjs` owns localStorage access.

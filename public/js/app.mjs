@@ -12,8 +12,10 @@ import {
     isNearBottom,
     renderMessageHistory,
     scrollMessagesToBottom,
-    showNewMessageButton
+    showNewMessageButton,
+    updateMessage
 } from "./messages.mjs";
+import { setupMessageActions } from "./messageActions.mjs";
 import { renderRoomList } from "./rooms.mjs";
 import {
     loadLastRoom,
@@ -107,6 +109,27 @@ function emitJoinRoom(room) {
     });
 }
 
+function emitEditMessage(message, nextValue) {
+    const nextMessage = cleanText(nextValue, LIMITS.message);
+
+    if (
+        !nextMessage ||
+        !message?.id ||
+        !state.currentRoom ||
+        !state.user ||
+        message.userId !== state.user.id
+    ) {
+        return;
+    }
+
+    socket.emit("edit message", {
+        id: message.id,
+        room: state.currentRoom,
+        userId: state.user.id,
+        message: nextMessage
+    });
+}
+
 function joinRoom(value) {
     const room = cleanText(value, LIMITS.roomName);
 
@@ -180,6 +203,10 @@ const typing = setupTypingInput({
     getUserProfile
 });
 
+const messageActions = setupMessageActions({
+    onEdit: emitEditMessage
+});
+
 elements.messages.addEventListener("scroll", () => {
     state.shouldAutoScroll = isNearBottom();
 
@@ -244,7 +271,10 @@ socket.on("disconnect", () => {
 
 socket.on("message history", (data) => {
     resetVisibleUnread();
-    renderMessageHistory(data, state.user?.id);
+    renderMessageHistory(data, {
+        currentUserId: state.user?.id,
+        onOpenMessageActions: messageActions.open
+    });
 });
 
 socket.on("room list", (rooms) => {
@@ -258,8 +288,13 @@ socket.on("chat message", (data) => {
     appendMessage(data, {
         currentUserId: state.user?.id,
         shouldAutoScroll: state.shouldAutoScroll,
+        onOpenMessageActions: messageActions.open,
         onUnread: incrementVisibleUnread
     });
+});
+
+socket.on("message edited", (data) => {
+    updateMessage(data);
 });
 
 socket.on("new message notification", (data) => {
