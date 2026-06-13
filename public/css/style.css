@@ -80,6 +80,15 @@ body {
     margin-left: auto;
     background: var(--accent);
     touch-action: pan-y;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.my-message * {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 @keyframes messageIn {
@@ -327,6 +336,9 @@ textarea {
     position: fixed;
     inset: 0;
     z-index: 500;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .message-action-layer[hidden] {
@@ -408,6 +420,9 @@ textarea {
     width: 100%;
     flex: none;
     min-height: 112px;
+    -webkit-touch-callout: default;
+    -webkit-user-select: text;
+    user-select: text;
 }
 
 .message-edit-actions {

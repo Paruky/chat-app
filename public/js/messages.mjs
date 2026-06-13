@@ -51,6 +51,10 @@ function enableMessageActions(item, data, onOpenMessageActions) {
         });
     });
 
+    item.addEventListener("selectstart", (event) => {
+        event.preventDefault();
+    });
+
     item.addEventListener("pointerdown", (event) => {
         if (event.pointerType === "mouse") return;
 
