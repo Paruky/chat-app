@@ -17,6 +17,7 @@ export function renderRoomList(options) {
         rooms,
         currentRoom,
         unreadCounts,
+        showUnreadBadges,
         onSelectRoom
     } = options;
 
@@ -39,7 +40,7 @@ export function renderRoomList(options) {
 
         const unreadCount = unreadCounts[room] || 0;
 
-        if (unreadCount > 0) {
+        if (showUnreadBadges && unreadCount > 0) {
             item.appendChild(createUnreadBadge(unreadCount));
         }
 

@@ -12,6 +12,10 @@ export const elements = {
     loadingScreen: byId("loading-screen"),
     roomsView: byId("rooms-view"),
     chatView: byId("chat-view"),
+    roomsPanel: byId("rooms-panel"),
+    settingsPanel: byId("settings-panel"),
+    roomsNavButton: byId("rooms-nav-btn"),
+    settingsNavButton: byId("settings-nav-btn"),
     roomList: byId("room-list"),
     roomForm: byId("room-form"),
     form: byId("form"),
@@ -24,6 +28,9 @@ export const elements = {
     typingIndicator: byId("typing-indicator"),
     currentRoomName: byId("current-room-name"),
     userBar: byId("user-bar"),
+    unreadBadgesToggle: byId("setting-unread-badges"),
+    compactModeToggle: byId("setting-compact-mode"),
+    themeOptions: byId("theme-options"),
     appVersion: byId("app-version")
 };
 
@@ -43,6 +50,15 @@ export function showRoomsView() {
 export function showChatView() {
     elements.roomsView.hidden = true;
     elements.chatView.hidden = false;
+}
+
+export function showMenuPanel(panel) {
+    const isSettings = panel === "settings";
+
+    elements.roomsPanel.hidden = isSettings;
+    elements.settingsPanel.hidden = !isSettings;
+    elements.roomsNavButton.classList.toggle("active", !isSettings);
+    elements.settingsNavButton.classList.toggle("active", isSettings);
 }
 
 export function setUserBar(profile) {

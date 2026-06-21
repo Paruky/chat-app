@@ -3,6 +3,7 @@ import {
     elements,
     setAppVersion,
     showChatView,
+    showMenuPanel,
     showRoomsView,
     setCurrentRoomName,
     setLoading,
@@ -22,9 +23,16 @@ import { renderRoomList } from "./rooms.mjs";
 import {
     loadLastRoom,
     loadUnreadCounts,
+    loadSettings,
     saveLastRoom,
+    saveSettings,
     saveUnreadCounts
 } from "./storage.mjs";
+import {
+    applySettings,
+    normalizeSettings,
+    setupSettingsPanel
+} from "./settings.mjs";
 import {
     hideTypingIndicator,
     setupTypingInput,
@@ -43,11 +51,13 @@ const state = {
     currentRoom: "",
     rooms: [],
     unreadCounts: loadUnreadCounts(),
+    settings: normalizeSettings(loadSettings()),
     visibleUnreadCount: 0,
     shouldAutoScroll: true
 };
 
 setAppVersion(APP_VERSION);
+applySettings(state.settings);
 
 function encodeRoomRoute(room) {
     return encodeURIComponent(room);
@@ -65,6 +75,10 @@ function navigateToRooms() {
     window.location.hash = "#/rooms";
 }
 
+function navigateToSettings() {
+    window.location.hash = "#/settings";
+}
+
 function navigateToRoom(room) {
     window.location.hash = `#/rooms/${encodeRoomRoute(room)}`;
 }
@@ -72,6 +86,13 @@ function navigateToRoom(room) {
 function readRoute() {
     const hash = window.location.hash || "#/rooms";
     const parts = hash.replace(/^#\/?/, "").split("/");
+
+    if (parts[0] === "settings") {
+        return {
+            view: "settings",
+            room: ""
+        };
+    }
 
     if (parts[0] === "rooms" && parts[1]) {
         return {
@@ -94,7 +115,7 @@ function syncRoute() {
         return;
     }
 
-    showRoomMenu();
+    showRoomMenu(route.view === "settings" ? "settings" : "rooms");
 }
 
 function cleanText(value, maxLength) {
@@ -118,6 +139,7 @@ function renderRooms() {
         rooms: state.rooms,
         currentRoom: state.currentRoom,
         unreadCounts: state.unreadCounts,
+        showUnreadBadges: state.settings.unreadBadges,
         onSelectRoom: joinRoom
     });
 }
@@ -180,7 +202,7 @@ function emitEditMessage(message, nextValue) {
     });
 }
 
-function showRoomMenu() {
+function showRoomMenu(panel = "rooms") {
     const previousRoom = state.currentRoom;
 
     typing.stopTyping();
@@ -189,6 +211,7 @@ function showRoomMenu() {
     setCurrentRoomName("");
     resetVisibleUnread();
     renderRooms();
+    showMenuPanel(panel);
     showRoomsView();
 
     if (previousRoom) {
@@ -196,6 +219,14 @@ function showRoomMenu() {
             room: previousRoom
         });
     }
+}
+
+function updateSettings(nextSettings) {
+    state.settings = normalizeSettings(nextSettings);
+    saveSettings(state.settings);
+    applySettings(state.settings);
+    settingsPanel.syncControls();
+    renderRooms();
 }
 
 function joinRoom(value, options = {}) {
@@ -284,6 +315,16 @@ const messageActions = setupMessageActions({
     onEdit: emitEditMessage
 });
 
+const settingsPanel = setupSettingsPanel({
+    elements,
+    settings: {
+        get current() {
+            return state.settings;
+        }
+    },
+    onChange: updateSettings
+});
+
 elements.messages.addEventListener("scroll", () => {
     state.shouldAutoScroll = isNearBottom();
 
@@ -304,6 +345,14 @@ elements.roomForm.addEventListener("submit", (event) => {
 
 elements.backToRoomsButton.addEventListener("click", () => {
     navigateToRooms();
+});
+
+elements.roomsNavButton.addEventListener("click", () => {
+    navigateToRooms();
+});
+
+elements.settingsNavButton.addEventListener("click", () => {
+    navigateToSettings();
 });
 
 elements.roomInput.addEventListener("keydown", (event) => {

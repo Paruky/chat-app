@@ -1,5 +1,5 @@
 export const APP_VERSION_STAGE = "Beta";
 export const APP_VERSION_MAJOR = 1;
-export const APP_VERSION_MINOR = 3;
+export const APP_VERSION_MINOR = 4;
 
 export const APP_VERSION = `${APP_VERSION_STAGE} ${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}`;

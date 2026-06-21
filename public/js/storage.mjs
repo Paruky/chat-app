@@ -1,6 +1,7 @@
 const KEYS = {
     lastRoom: "lastRoom",
-    unreadCounts: "unreadCounts"
+    unreadCounts: "unreadCounts",
+    settings: "settings"
 };
 
 function readJson(key, fallback) {
@@ -35,4 +36,12 @@ export function loadUnreadCounts() {
 
 export function saveUnreadCounts(unreadCounts) {
     writeJson(KEYS.unreadCounts, unreadCounts);
+}
+
+export function loadSettings() {
+    return readJson(KEYS.settings, {});
+}
+
+export function saveSettings(settings) {
+    writeJson(KEYS.settings, settings);
 }

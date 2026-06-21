@@ -24,19 +24,54 @@
                 <div id="user-bar"></div>
             </header>
 
-            <form id="room-form">
-                <input id="room" placeholder="部屋名">
-                <button id="join-btn" type="submit">入る</button>
-            </form>
-
             <nav id="menu-nav" aria-label="メニュー">
-                <button type="button" class="menu-nav-item active">部屋</button>
+                <button id="rooms-nav-btn" type="button" class="menu-nav-item active">部屋</button>
                 <button type="button" class="menu-nav-item" disabled>DM</button>
-                <button type="button" class="menu-nav-item" disabled>設定</button>
+                <button id="settings-nav-btn" type="button" class="menu-nav-item">設定</button>
             </nav>
 
-            <div class="menu-section-title">部屋一覧</div>
-            <div id="room-list"></div>
+            <section id="rooms-panel" class="menu-panel">
+                <form id="room-form">
+                    <input id="room" placeholder="部屋名">
+                    <button id="join-btn" type="submit">入る</button>
+                </form>
+
+                <div class="menu-section-title">部屋一覧</div>
+                <div id="room-list"></div>
+            </section>
+
+            <section id="settings-panel" class="menu-panel" hidden>
+                <div class="menu-section-title">設定</div>
+
+                <div class="settings-list">
+                    <label class="setting-card setting-card-horizontal">
+                        <span>
+                            <span class="setting-title">未読バッジ</span>
+                            <span class="setting-note">部屋一覧の赤い件数表示</span>
+                        </span>
+                        <span class="switch">
+                            <input id="setting-unread-badges" type="checkbox">
+                            <span class="switch-track"></span>
+                        </span>
+                    </label>
+
+                    <div class="setting-card">
+                        <div class="setting-title">テーマ</div>
+                        <div id="theme-options" class="theme-grid"></div>
+                    </div>
+
+                    <label class="setting-card setting-card-horizontal">
+                        <span>
+                            <span class="setting-title">コンパクト表示</span>
+                            <span class="setting-note">部屋一覧とメッセージを少し詰める</span>
+                        </span>
+                        <span class="switch">
+                            <input id="setting-compact-mode" type="checkbox">
+                            <span class="switch-track"></span>
+                        </span>
+                    </label>
+                </div>
+            </section>
         </div>
     </section>
 
