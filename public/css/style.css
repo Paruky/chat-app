@@ -248,6 +248,10 @@ button {
     letter-spacing: 0;
 }
 
+#chat-container:has(#chat-view:not([hidden])) #app-version {
+    bottom: calc(82px + env(safe-area-inset-bottom));
+}
+
 #main-chat {
     display: flex;
     flex-direction: column;
