@@ -10,13 +10,17 @@ function byId(id) {
 
 export const elements = {
     loadingScreen: byId("loading-screen"),
+    roomsView: byId("rooms-view"),
+    chatView: byId("chat-view"),
     roomList: byId("room-list"),
+    roomForm: byId("room-form"),
     form: byId("form"),
     input: byId("input"),
     messages: byId("messages"),
     newMessageButton: byId("new-message-btn"),
     roomInput: byId("room"),
     joinButton: byId("join-btn"),
+    backToRoomsButton: byId("back-to-rooms-btn"),
     typingIndicator: byId("typing-indicator"),
     currentRoomName: byId("current-room-name"),
     userBar: byId("user-bar"),
@@ -29,6 +33,16 @@ export function setLoading(isLoading) {
 
 export function setCurrentRoomName(room) {
     elements.currentRoomName.textContent = room ? `# ${room}` : "未接続";
+}
+
+export function showRoomsView() {
+    elements.roomsView.hidden = false;
+    elements.chatView.hidden = true;
+}
+
+export function showChatView() {
+    elements.roomsView.hidden = true;
+    elements.chatView.hidden = false;
 }
 
 export function setUserBar(profile) {

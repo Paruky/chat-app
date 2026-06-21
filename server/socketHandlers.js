@@ -64,6 +64,18 @@ function registerSocketHandlers(io, dependencies) {
             }
         });
 
+        socket.on("leave room", (data = {}) => {
+            const room = cleanRoomName(data.room);
+
+            if (!room) return;
+
+            socket.leave(room);
+
+            if (socket.currentRoom === room) {
+                socket.currentRoom = "";
+            }
+        });
+
         socket.on("typing", (data = {}) => {
             const room = cleanRoomName(data.room);
 

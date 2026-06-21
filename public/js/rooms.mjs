@@ -33,6 +33,7 @@ export function renderRoomList(options) {
         }
 
         const roomName = document.createElement("span");
+        roomName.className = "room-name";
         roomName.textContent = room;
         item.appendChild(roomName);
 

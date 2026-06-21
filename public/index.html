@@ -14,43 +14,64 @@
 </div>
 <div id="chat-container">
 
-    <div id="sidebar">
-        <h3>部屋一覧</h3>
-        <div id="room-list"></div>
-        <div id="app-version" aria-label="現在のバージョン"></div>
-    </div>
+    <section id="rooms-view" class="app-view">
+        <div id="menu-page">
+            <header id="menu-header">
+                <div>
+                    <p class="menu-kicker">Paruky Chat</p>
+                    <h1>メニュー</h1>
+                </div>
+                <div id="user-bar"></div>
+            </header>
 
-    <div id="main-chat">
+            <form id="room-form">
+                <input id="room" placeholder="部屋名">
+                <button id="join-btn" type="submit">入る</button>
+            </form>
 
-        <div id="top-bar">
-            <input id="room" placeholder="部屋名">
-            <button id="join-btn" type="button">参加</button>
+            <nav id="menu-nav" aria-label="メニュー">
+                <button type="button" class="menu-nav-item active">部屋</button>
+                <button type="button" class="menu-nav-item" disabled>DM</button>
+                <button type="button" class="menu-nav-item" disabled>設定</button>
+            </nav>
+
+            <div class="menu-section-title">部屋一覧</div>
+            <div id="room-list"></div>
         </div>
+    </section>
 
-        <div id="current-room-name">
-            未接続
-        </div>
-        <div id="user-bar"></div>
+    <section id="chat-view" class="app-view" hidden>
+        <div id="main-chat">
 
-        <div id="messages"></div>
-        <div id="typing-indicator"></div>
-        <button id="new-message-btn">
-            ⬇ 新着メッセージ
-        </button>
+            <header id="chat-header">
+                <button id="back-to-rooms-btn" type="button">メニュー</button>
+                <div id="current-room-name">
+                    未接続
+                </div>
+            </header>
 
-        <form id="form">
-            <textarea
-                id="input"
-                placeholder="メッセージを入力"
-                rows="1"
-            ></textarea>
-
-            <button type="submit">
-                送信
+            <div id="messages"></div>
+            <div id="typing-indicator"></div>
+            <button id="new-message-btn">
+                ↓ 新着メッセージ
             </button>
-        </form>
 
-    </div>
+            <form id="form">
+                <textarea
+                    id="input"
+                    placeholder="メッセージを入力"
+                    rows="1"
+                ></textarea>
+
+                <button type="submit">
+                    送信
+                </button>
+            </form>
+
+        </div>
+    </section>
+
+    <div id="app-version" aria-label="現在のバージョン"></div>
 
 </div>
 

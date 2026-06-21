@@ -39,9 +39,18 @@ body {
 }
 
 #chat-container {
-    display: flex;
+    position: relative;
     height: 100dvh;
     overflow: hidden;
+}
+
+.app-view {
+    width: 100%;
+    height: 100%;
+}
+
+.app-view[hidden] {
+    display: none;
 }
 
 #messages {
@@ -146,42 +155,88 @@ button {
     font-size: 14px;
 }
 
-#top-bar {
-    display: flex;
-    padding: 10px;
-    background: var(--bg-card);
-    gap: 10px;
-}
-
-#top-bar input {
-    flex: 1;
-}
-
-#sidebar {
-    width: 220px;
-    background: var(--bg-sidebar);
-    padding: 10px;
-    border-right: 1px solid var(--border);
+#rooms-view {
     overflow-y: auto;
-    flex-shrink: 0;
+    background:
+        linear-gradient(180deg, rgba(0, 122, 255, 0.12), transparent 220px),
+        var(--bg-main);
+}
+
+#menu-page {
+    width: min(760px, 100%);
+    min-height: 100%;
+    margin: 0 auto;
+    padding: 28px 18px 52px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 18px;
 }
 
-#sidebar h3 {
+#menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+#menu-header h1 {
     margin: 0;
+    font-size: 34px;
+    line-height: 1;
+}
+
+.menu-kicker {
+    margin: 0 0 8px;
+    color: var(--text-sub);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+#room-form {
+    display: flex;
+    gap: 10px;
+    padding: 0;
+    background: transparent;
+}
+
+#menu-nav {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.menu-nav-item {
+    background: var(--bg-card);
+    color: var(--text-main);
+}
+
+.menu-nav-item.active {
+    background: var(--accent);
+}
+
+.menu-nav-item:disabled {
+    cursor: default;
+    color: var(--text-sub);
+    opacity: 0.7;
+}
+
+.menu-section-title {
+    color: var(--text-sub);
+    font-size: 13px;
+    font-weight: 700;
 }
 
 #room-list {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
+    display: grid;
+    gap: 10px;
 }
 
 #app-version {
-    align-self: flex-start;
-    margin-top: auto;
+    position: fixed;
+    left: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    z-index: 120;
     padding: 4px 7px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 999px;
@@ -194,9 +249,9 @@ button {
 }
 
 #main-chat {
-    flex: 1;
     display: flex;
     flex-direction: column;
+    height: 100%;
     min-height: 0;
     position: relative;
 }
@@ -204,16 +259,24 @@ button {
 .room-item {
     width: 100%;
     background: var(--bg-card);
-    padding: 10px;
+    padding: 16px 44px 16px 16px;
     border-radius: var(--radius);
-    margin-bottom: 10px;
     cursor: pointer;
     position: relative;
     color: var(--text-main);
     text-align: left;
+    min-height: 54px;
     transition:
         background var(--transition),
         transform var(--transition);
+}
+
+.room-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
 }
 
 .room-item:hover {
@@ -229,17 +292,28 @@ button {
     color: white;
 }
 
+#chat-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    flex-shrink: 0;
+}
+
+#back-to-rooms-btn {
+    background: var(--bg-message);
+}
+
 #current-room-name {
-    padding: 12px 16px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
     font-size: 18px;
     font-weight: 700;
-
-    border-bottom: 1px solid var(--border);
-
-    background: var(--bg-card);
-
-    flex-shrink: 0;
 }
 
 * {
@@ -658,49 +732,34 @@ textarea {
         overflow: hidden;
     }
 
-    #chat-container {
-        flex-direction: column;
-        height: 100dvh;
+    #menu-page {
+        padding: 20px 12px 48px;
+        gap: 14px;
     }
 
-    #sidebar {
+    #menu-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    #menu-header h1 {
+        font-size: 30px;
+    }
+
+    #user-bar {
         width: 100%;
-        height: 120px;
-
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-
-        display: flex;
-        flex-direction: column;
     }
 
-    #room-list {
-        display: flex;
-        gap: 10px;
-        overflow-x: auto;
-        flex: 1;
+    #room-form {
+        flex-wrap: nowrap;
     }
 
-    #app-version {
-        margin-top: 0;
-        font-size: 10px;
+    .menu-nav-item {
+        padding: 12px 10px;
     }
 
     .room-item {
-        width: auto;
-        min-width: 120px;
-        margin-bottom: 0;
-        text-align: center;
-    }
-
-    #top-bar {
-        flex-wrap: wrap;
-        display: none;
-    }
-
-    #top-bar input,
-    #top-bar button {
-        width: 100%;
+        min-height: 58px;
     }
 
     form {

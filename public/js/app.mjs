@@ -2,6 +2,8 @@ import { SOCKET_OPTIONS, SUPABASE_CONFIG, LIMITS } from "./config.mjs";
 import {
     elements,
     setAppVersion,
+    showChatView,
+    showRoomsView,
     setCurrentRoomName,
     setLoading,
     setUserBar
@@ -46,6 +48,54 @@ const state = {
 };
 
 setAppVersion(APP_VERSION);
+
+function encodeRoomRoute(room) {
+    return encodeURIComponent(room);
+}
+
+function decodeRoomRoute(value) {
+    try {
+        return decodeURIComponent(value || "");
+    } catch (error) {
+        return "";
+    }
+}
+
+function navigateToRooms() {
+    window.location.hash = "#/rooms";
+}
+
+function navigateToRoom(room) {
+    window.location.hash = `#/rooms/${encodeRoomRoute(room)}`;
+}
+
+function readRoute() {
+    const hash = window.location.hash || "#/rooms";
+    const parts = hash.replace(/^#\/?/, "").split("/");
+
+    if (parts[0] === "rooms" && parts[1]) {
+        return {
+            view: "room",
+            room: cleanText(decodeRoomRoute(parts.slice(1).join("/")), LIMITS.roomName)
+        };
+    }
+
+    return {
+        view: "rooms",
+        room: ""
+    };
+}
+
+function syncRoute() {
+    const route = readRoute();
+
+    if (route.view === "room" && route.room) {
+        joinRoom(route.room, { updateRoute: false });
+        return;
+    }
+
+    showRoomMenu();
+}
 
 function cleanText(value, maxLength) {
     return String(value || "").trim().slice(0, maxLength);
@@ -130,10 +180,34 @@ function emitEditMessage(message, nextValue) {
     });
 }
 
-function joinRoom(value) {
+function showRoomMenu() {
+    const previousRoom = state.currentRoom;
+
+    typing.stopTyping();
+    state.currentRoom = "";
+    elements.roomInput.value = "";
+    setCurrentRoomName("");
+    resetVisibleUnread();
+    renderRooms();
+    showRoomsView();
+
+    if (previousRoom) {
+        socket.emit("leave room", {
+            room: previousRoom
+        });
+    }
+}
+
+function joinRoom(value, options = {}) {
+    const { updateRoute = true } = options;
     const room = cleanText(value, LIMITS.roomName);
 
     if (!room || !state.user) return;
+
+    if (updateRoute) {
+        navigateToRoom(room);
+        return;
+    }
 
     typing.stopTyping();
 
@@ -144,6 +218,7 @@ function joinRoom(value) {
     resetVisibleUnread();
     saveLastRoom(room);
     renderRooms();
+    showChatView();
     emitJoinRoom(room);
 }
 
@@ -176,9 +251,11 @@ async function checkUser() {
 
     const savedRoom = cleanText(loadLastRoom(), LIMITS.roomName);
 
-    if (savedRoom) {
-        joinRoom(savedRoom);
+    if (!window.location.hash && savedRoom) {
+        navigateToRooms();
     }
+
+    syncRoute();
 }
 
 function isMobileInput() {
@@ -220,8 +297,13 @@ elements.newMessageButton.addEventListener("click", () => {
     resetVisibleUnread();
 });
 
-elements.joinButton.addEventListener("click", () => {
+elements.roomForm.addEventListener("submit", (event) => {
+    event.preventDefault();
     joinRoom(elements.roomInput.value);
+});
+
+elements.backToRoomsButton.addEventListener("click", () => {
+    navigateToRooms();
 });
 
 elements.roomInput.addEventListener("keydown", (event) => {
@@ -311,4 +393,10 @@ socket.on("server error", (data) => {
 window.addEventListener("load", async () => {
     registerServiceWorker();
     await checkUser();
+});
+
+window.addEventListener("hashchange", () => {
+    if (state.user) {
+        syncRoute();
+    }
 });
