@@ -22,8 +22,11 @@ export function normalizeAccountName(value) {
         .trim()
         .replace(/^@+/, "")
         .replace(/\s+/g, "")
-        .toLowerCase()
         .slice(0, 39);
+}
+
+function getAccountKey(accountName) {
+    return normalizeAccountName(accountName).toLowerCase();
 }
 
 export function isDmRoom(room) {
@@ -34,9 +37,9 @@ export function createDmRoom(currentAccount, targetAccount) {
     const users = [
         normalizeAccountName(currentAccount),
         normalizeAccountName(targetAccount)
-    ].filter(Boolean).sort((a, b) => a.localeCompare(b, "en"));
+    ].filter(Boolean).sort((a, b) => getAccountKey(a).localeCompare(getAccountKey(b), "en"));
 
-    if (users.length !== 2 || users[0] === users[1]) return "";
+    if (users.length !== 2 || getAccountKey(users[0]) === getAccountKey(users[1])) return "";
 
     return `${DM_PREFIX}${users.map((user) => encodeURIComponent(user)).join(":")}`;
 }
@@ -54,11 +57,13 @@ export function parseDmRoom(room) {
 
 export function getDmPeer(room, currentAccount) {
     const current = normalizeAccountName(currentAccount);
+    const currentKey = getAccountKey(current);
     const users = parseDmRoom(room);
+    const currentUser = users.find((user) => getAccountKey(user) === currentKey);
 
-    if (!current || users.length !== 2 || !users.includes(current)) return "";
+    if (!current || users.length !== 2 || !currentUser) return "";
 
-    return users.find((user) => user !== current) || "";
+    return users.find((user) => getAccountKey(user) !== currentKey) || "";
 }
 
 export function formatDmTitle(accountName) {
@@ -73,18 +78,26 @@ export function renderDmList(options) {
         currentRoom,
         unreadCounts,
         showUnreadBadges,
-        onSelectDm
+        onSelectDm,
+        onDeleteDm
     } = options;
 
     elements.dmList.replaceChildren();
 
-    const peers = [...new Set(
-        (rooms || [])
-            .map((room) => getDmPeer(room, currentAccount))
-            .filter(Boolean)
-    )].sort((a, b) => a.localeCompare(b, "en"));
+    const dmMap = new Map();
 
-    if (peers.length === 0) {
+    (rooms || []).forEach((room) => {
+        const peer = getDmPeer(room, currentAccount);
+        const key = getAccountKey(peer);
+
+        if (peer && !dmMap.has(key)) {
+            dmMap.set(key, { peer, room });
+        }
+    });
+
+    const dms = [...dmMap.values()].sort((a, b) => getAccountKey(a.peer).localeCompare(getAccountKey(b.peer), "en"));
+
+    if (dms.length === 0) {
         const empty = document.createElement("div");
         empty.className = "empty-state";
         empty.textContent = "まだDMはありません";
@@ -92,10 +105,8 @@ export function renderDmList(options) {
         return;
     }
 
-    peers.forEach((peer) => {
-        const room = createDmRoom(currentAccount, peer);
-        const item = document.createElement("button");
-        item.type = "button";
+    dms.forEach(({ peer, room }) => {
+        const item = document.createElement("div");
         item.className = "room-item dm-item";
         item.dataset.room = room;
 
@@ -108,13 +119,34 @@ export function renderDmList(options) {
         name.textContent = `@${peer}`;
         item.appendChild(name);
 
+        const actions = document.createElement("span");
+        actions.className = "dm-actions";
+
+        const openButton = document.createElement("button");
+        openButton.type = "button";
+        openButton.className = "dm-open-btn";
+        openButton.textContent = "開く";
+        openButton.addEventListener("click", () => onSelectDm(peer));
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "dm-delete-btn";
+        deleteButton.textContent = "削除";
+        deleteButton.addEventListener("click", () => onDeleteDm({ peer, room }));
+
+        actions.append(openButton, deleteButton);
+        item.appendChild(actions);
+
         const unreadCount = unreadCounts[room] || 0;
 
         if (showUnreadBadges && unreadCount > 0) {
             item.appendChild(createUnreadBadge(unreadCount));
         }
 
-        item.addEventListener("click", () => onSelectDm(peer));
+        item.addEventListener("click", (event) => {
+            if (event.target.closest("button")) return;
+            onSelectDm(peer);
+        });
         elements.dmList.appendChild(item);
     });
 }

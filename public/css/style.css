@@ -340,16 +340,24 @@ button {
 .room-item {
     width: 100%;
     background: var(--bg-card);
-    padding: 16px 44px 16px 16px;
+    padding: 16px;
     border-radius: var(--radius);
     cursor: pointer;
     position: relative;
     color: var(--text-main);
     text-align: left;
     min-height: 54px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
     transition:
         background var(--transition),
         transform var(--transition);
+}
+
+.room-item:not(.dm-item) {
+    padding-right: 44px;
 }
 
 .room-name {
@@ -380,6 +388,31 @@ button {
 
 .dm-item.active .room-name::before {
     color: rgba(255, 255, 255, 0.75);
+}
+
+.dm-item .unread-badge {
+    right: 110px;
+}
+
+.dm-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.dm-open-btn,
+.dm-delete-btn {
+    padding: 9px 11px;
+    border-radius: 12px;
+    font-size: 13px;
+}
+
+.dm-open-btn {
+    background: var(--accent);
+}
+
+.dm-delete-btn {
+    background: var(--bg-message);
+    color: var(--text-sub);
 }
 
 #chat-header {

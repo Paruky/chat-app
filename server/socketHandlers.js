@@ -14,6 +14,10 @@ function logSocketError(action, error) {
     console.error(`[socket:${action}]`, error);
 }
 
+function isDmRoom(room) {
+    return String(room || "").startsWith("dm:");
+}
+
 function registerSocketHandlers(io, dependencies) {
     const {
         roomsRepository,
@@ -73,6 +77,22 @@ function registerSocketHandlers(io, dependencies) {
 
             if (socket.currentRoom === room) {
                 socket.currentRoom = "";
+            }
+        });
+
+        socket.on("delete dm room", async (data = {}) => {
+            const room = cleanRoomName(data.room);
+
+            if (!room || !isDmRoom(room)) return;
+
+            try {
+                await roomsRepository.deleteRoom(room);
+                await emitRoomList();
+            } catch (error) {
+                logSocketError("delete-dm-room", error);
+                socket.emit("server error", {
+                    message: "DMを削除できませんでした"
+                });
             }
         });
 

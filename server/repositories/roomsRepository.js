@@ -19,9 +19,19 @@ function createRoomsRepository(supabase) {
         if (error) throw error;
     }
 
+    async function deleteRoom(name) {
+        const { error } = await supabase
+            .from("rooms")
+            .delete()
+            .eq("name", name);
+
+        if (error) throw error;
+    }
+
     return {
         listRooms,
-        saveRoom
+        saveRoom,
+        deleteRoom
     };
 }
 

@@ -196,7 +196,8 @@ function renderDms() {
         currentRoom: state.currentRoom,
         unreadCounts: state.unreadCounts,
         showUnreadBadges: state.settings.unreadBadges,
-        onSelectDm: joinDm
+        onSelectDm: joinDm,
+        onDeleteDm: deleteDm
     });
 }
 
@@ -343,6 +344,21 @@ function joinDm(value, options = {}) {
     renderDms();
     showChatView();
     emitJoinRoom(room);
+}
+
+function deleteDm(dm) {
+    const targetAccount = normalizeAccountName(dm?.peer);
+    const room = cleanText(dm?.room, LIMITS.roomName);
+
+    if (!room || !state.user) return;
+
+    const confirmed = window.confirm(`@${targetAccount} とのDMを一覧から削除しますか？`);
+
+    if (!confirmed) return;
+
+    socket.emit("delete dm room", {
+        room
+    });
 }
 
 async function login() {
@@ -525,6 +541,10 @@ socket.on("room list", (rooms) => {
     state.rooms = rooms || [];
     renderRooms();
     renderDms();
+
+    if (state.currentRoom && !state.rooms.includes(state.currentRoom)) {
+        showRoomMenu(isDmRoom(state.currentRoom) ? "dms" : "rooms");
+    }
 });
 
 socket.on("chat message", (data) => {
