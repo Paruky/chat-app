@@ -26,7 +26,7 @@
 
             <nav id="menu-nav" aria-label="メニュー">
                 <button id="rooms-nav-btn" type="button" class="menu-nav-item active">部屋</button>
-                <button type="button" class="menu-nav-item" disabled>DM</button>
+                <button id="dms-nav-btn" type="button" class="menu-nav-item">DM</button>
                 <button id="settings-nav-btn" type="button" class="menu-nav-item">設定</button>
             </nav>
 
@@ -38,6 +38,16 @@
 
                 <div class="menu-section-title">部屋一覧</div>
                 <div id="room-list"></div>
+            </section>
+
+            <section id="dms-panel" class="menu-panel" hidden>
+                <form id="dm-form">
+                    <input id="dm-target" placeholder="相手のアカウント名">
+                    <button id="dm-start-btn" type="submit">開く</button>
+                </form>
+
+                <div class="menu-section-title">DM</div>
+                <div id="dm-list"></div>
             </section>
 
             <section id="settings-panel" class="menu-panel" hidden>

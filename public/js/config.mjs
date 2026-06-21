@@ -11,6 +11,6 @@ export const SUPABASE_CONFIG = {
 };
 
 export const LIMITS = {
-    roomName: 40,
+    roomName: 160,
     message: 2000
 };

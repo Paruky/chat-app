@@ -5,6 +5,7 @@ import {
     showChatView,
     showMenuPanel,
     showRoomsView,
+    setCurrentConversationName,
     setCurrentRoomName,
     setLoading,
     setUserBar
@@ -19,6 +20,14 @@ import {
     updateMessage
 } from "./messages.mjs";
 import { setupMessageActions } from "./messageActions.mjs";
+import {
+    createDmRoom,
+    formatDmTitle,
+    getDmPeer,
+    isDmRoom,
+    normalizeAccountName,
+    renderDmList
+} from "./dms.mjs";
 import { renderRoomList } from "./rooms.mjs";
 import {
     loadLastRoom,
@@ -75,6 +84,10 @@ function navigateToRooms() {
     window.location.hash = "#/rooms";
 }
 
+function navigateToDms() {
+    window.location.hash = "#/dms";
+}
+
 function navigateToSettings() {
     window.location.hash = "#/settings";
 }
@@ -83,14 +96,32 @@ function navigateToRoom(room) {
     window.location.hash = `#/rooms/${encodeRoomRoute(room)}`;
 }
 
+function navigateToDm(accountName) {
+    window.location.hash = `#/dm/${encodeRoomRoute(accountName)}`;
+}
+
 function readRoute() {
     const hash = window.location.hash || "#/rooms";
     const parts = hash.replace(/^#\/?/, "").split("/");
+
+    if (parts[0] === "dms") {
+        return {
+            view: "dms",
+            room: ""
+        };
+    }
 
     if (parts[0] === "settings") {
         return {
             view: "settings",
             room: ""
+        };
+    }
+
+    if (parts[0] === "dm" && parts[1]) {
+        return {
+            view: "dm",
+            accountName: normalizeAccountName(decodeRoomRoute(parts.slice(1).join("/")))
         };
     }
 
@@ -115,7 +146,12 @@ function syncRoute() {
         return;
     }
 
-    showRoomMenu(route.view === "settings" ? "settings" : "rooms");
+    if (route.view === "dm" && route.accountName) {
+        joinDm(route.accountName, { updateRoute: false });
+        return;
+    }
+
+    showRoomMenu(route.view === "settings" ? "settings" : route.view === "dms" ? "dms" : "rooms");
 }
 
 function cleanText(value, maxLength) {
@@ -134,13 +170,33 @@ function getUserProfile(user = state.user) {
     };
 }
 
+function getCurrentAccount() {
+    return normalizeAccountName(
+        state.user?.user_metadata?.preferred_username ||
+        state.user?.user_metadata?.user_name ||
+        state.user?.email?.split("@")[0] ||
+        ""
+    );
+}
+
 function renderRooms() {
     renderRoomList({
-        rooms: state.rooms,
+        rooms: state.rooms.filter((room) => !isDmRoom(room)),
         currentRoom: state.currentRoom,
         unreadCounts: state.unreadCounts,
         showUnreadBadges: state.settings.unreadBadges,
         onSelectRoom: joinRoom
+    });
+}
+
+function renderDms() {
+    renderDmList({
+        rooms: state.rooms,
+        currentAccount: getCurrentAccount(),
+        currentRoom: state.currentRoom,
+        unreadCounts: state.unreadCounts,
+        showUnreadBadges: state.settings.unreadBadges,
+        onSelectDm: joinDm
     });
 }
 
@@ -150,14 +206,17 @@ function markRoomAsRead(room) {
     state.unreadCounts[room] = 0;
     saveUnreadCounts(state.unreadCounts);
     renderRooms();
+    renderDms();
 }
 
 function incrementUnread(room) {
     if (!room || room === state.currentRoom) return;
+    if (isDmRoom(room) && !getDmPeer(room, getCurrentAccount())) return;
 
     state.unreadCounts[room] = (state.unreadCounts[room] || 0) + 1;
     saveUnreadCounts(state.unreadCounts);
     renderRooms();
+    renderDms();
 }
 
 function resetVisibleUnread() {
@@ -208,9 +267,11 @@ function showRoomMenu(panel = "rooms") {
     typing.stopTyping();
     state.currentRoom = "";
     elements.roomInput.value = "";
+    elements.dmInput.value = "";
     setCurrentRoomName("");
     resetVisibleUnread();
     renderRooms();
+    renderDms();
     showMenuPanel(panel);
     showRoomsView();
 
@@ -227,13 +288,14 @@ function updateSettings(nextSettings) {
     applySettings(state.settings);
     settingsPanel.syncControls();
     renderRooms();
+    renderDms();
 }
 
 function joinRoom(value, options = {}) {
     const { updateRoute = true } = options;
     const room = cleanText(value, LIMITS.roomName);
 
-    if (!room || !state.user) return;
+    if (!room || isDmRoom(room) || !state.user) return;
 
     if (updateRoute) {
         navigateToRoom(room);
@@ -244,11 +306,41 @@ function joinRoom(value, options = {}) {
 
     state.currentRoom = room;
     elements.roomInput.value = room;
+    elements.dmInput.value = "";
     setCurrentRoomName(room);
     markRoomAsRead(room);
     resetVisibleUnread();
     saveLastRoom(room);
     renderRooms();
+    renderDms();
+    showChatView();
+    emitJoinRoom(room);
+}
+
+function joinDm(value, options = {}) {
+    const { updateRoute = true } = options;
+    const currentAccount = getCurrentAccount();
+    const targetAccount = normalizeAccountName(value);
+    const room = createDmRoom(currentAccount, targetAccount);
+
+    if (!room || !state.user) return;
+
+    if (updateRoute) {
+        navigateToDm(targetAccount);
+        return;
+    }
+
+    typing.stopTyping();
+
+    state.currentRoom = room;
+    elements.roomInput.value = "";
+    elements.dmInput.value = targetAccount;
+    setCurrentConversationName(formatDmTitle(targetAccount));
+    markRoomAsRead(room);
+    resetVisibleUnread();
+    saveLastRoom(room);
+    renderRooms();
+    renderDms();
     showChatView();
     emitJoinRoom(room);
 }
@@ -343,12 +435,26 @@ elements.roomForm.addEventListener("submit", (event) => {
     joinRoom(elements.roomInput.value);
 });
 
+elements.dmForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    joinDm(elements.dmInput.value);
+});
+
 elements.backToRoomsButton.addEventListener("click", () => {
+    if (isDmRoom(state.currentRoom)) {
+        navigateToDms();
+        return;
+    }
+
     navigateToRooms();
 });
 
 elements.roomsNavButton.addEventListener("click", () => {
     navigateToRooms();
+});
+
+elements.dmsNavButton.addEventListener("click", () => {
+    navigateToDms();
 });
 
 elements.settingsNavButton.addEventListener("click", () => {
@@ -359,6 +465,13 @@ elements.roomInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
         event.preventDefault();
         joinRoom(elements.roomInput.value);
+    }
+});
+
+elements.dmInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        joinDm(elements.dmInput.value);
     }
 });
 
@@ -411,6 +524,7 @@ socket.on("message history", (data) => {
 socket.on("room list", (rooms) => {
     state.rooms = rooms || [];
     renderRooms();
+    renderDms();
 });
 
 socket.on("chat message", (data) => {

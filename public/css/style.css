@@ -258,7 +258,8 @@ button {
     text-transform: uppercase;
 }
 
-#room-form {
+#room-form,
+#dm-form {
     display: flex;
     gap: 10px;
     padding: 0;
@@ -302,7 +303,8 @@ button {
     font-weight: 700;
 }
 
-#room-list {
+#room-list,
+#dm-list {
     display: grid;
     gap: 10px;
 }
@@ -369,6 +371,15 @@ button {
 .room-item.active {
     background: var(--accent);
     color: white;
+}
+
+.dm-item .room-name::before {
+    content: "DM ";
+    color: var(--text-sub);
+}
+
+.dm-item.active .room-name::before {
+    color: rgba(255, 255, 255, 0.75);
 }
 
 #chat-header {
@@ -817,6 +828,15 @@ textarea {
     gap: 10px;
 }
 
+.empty-state {
+    padding: 18px 16px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--text-sub);
+    background: var(--bg-card);
+    text-align: center;
+}
+
 .setting-card {
     padding: 16px;
     border: 1px solid var(--border);
@@ -984,7 +1004,8 @@ body.compact-mode #messages {
         width: 100%;
     }
 
-    #room-form {
+    #room-form,
+    #dm-form {
         flex-wrap: nowrap;
     }
 

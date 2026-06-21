@@ -7,7 +7,7 @@ function readConfig() {
         publicDir: path.join(__dirname, "..", "public"),
         supabaseUrl: process.env.SUPABASE_URL,
         supabaseKey: process.env.SUPABASE_KEY,
-        maxRoomNameLength: Number(process.env.MAX_ROOM_NAME_LENGTH || 40),
+        maxRoomNameLength: Number(process.env.MAX_ROOM_NAME_LENGTH || 160),
         maxMessageLength: Number(process.env.MAX_MESSAGE_LENGTH || 2000)
     };
 }

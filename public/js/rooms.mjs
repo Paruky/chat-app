@@ -1,15 +1,15 @@
 import { elements } from "./dom.mjs";
 
-function normalizeRooms(rooms) {
-    return [...new Set((rooms || []).map((room) => String(room || "").trim()).filter(Boolean))]
-        .sort((a, b) => a.localeCompare(b, "ja"));
-}
-
 function createUnreadBadge(count) {
     const badge = document.createElement("span");
     badge.className = "unread-badge";
     badge.textContent = count;
     return badge;
+}
+
+function normalizeRooms(rooms) {
+    return [...new Set((rooms || []).map((room) => String(room || "").trim()).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, "ja"));
 }
 
 export function renderRoomList(options) {
