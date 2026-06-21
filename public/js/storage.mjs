@@ -1,7 +1,9 @@
 const KEYS = {
     lastRoom: "lastRoom",
     unreadCounts: "unreadCounts",
-    settings: "settings"
+    settings: "settings",
+    hiddenDmRooms: "hiddenDmRooms",
+    dmDisplayNames: "dmDisplayNames"
 };
 
 function readJson(key, fallback) {
@@ -44,4 +46,20 @@ export function loadSettings() {
 
 export function saveSettings(settings) {
     writeJson(KEYS.settings, settings);
+}
+
+export function loadHiddenDmRooms() {
+    return readJson(KEYS.hiddenDmRooms, []);
+}
+
+export function saveHiddenDmRooms(rooms) {
+    writeJson(KEYS.hiddenDmRooms, rooms);
+}
+
+export function loadDmDisplayNames() {
+    return readJson(KEYS.dmDisplayNames, {});
+}
+
+export function saveDmDisplayNames(names) {
+    writeJson(KEYS.dmDisplayNames, names);
 }

@@ -29,41 +29,62 @@ function getAccountKey(accountName) {
     return normalizeAccountName(accountName).toLowerCase();
 }
 
+function accountKeysMatch(left, right) {
+    const leftKey = getAccountKey(left);
+    const rightKey = getAccountKey(right);
+
+    return leftKey === rightKey || leftKey.startsWith(rightKey) || rightKey.startsWith(leftKey);
+}
+
+function createShortKey(value) {
+    let hash = 2166136261;
+
+    for (const character of value) {
+        hash ^= character.charCodeAt(0);
+        hash = Math.imul(hash, 16777619);
+    }
+
+    return (hash >>> 0).toString(36);
+}
+
 export function isDmRoom(room) {
     return String(room || "").startsWith(DM_PREFIX);
 }
 
 export function createDmRoom(currentAccount, targetAccount) {
-    const users = [
-        normalizeAccountName(currentAccount),
-        normalizeAccountName(targetAccount)
+    const keys = [
+        getAccountKey(currentAccount),
+        getAccountKey(targetAccount)
     ].filter(Boolean).sort((a, b) => getAccountKey(a).localeCompare(getAccountKey(b), "en"));
 
-    if (users.length !== 2 || getAccountKey(users[0]) === getAccountKey(users[1])) return "";
+    if (keys.length !== 2 || keys[0] === keys[1]) return "";
 
-    return `${DM_PREFIX}${users.map((user) => encodeURIComponent(user)).join(":")}`;
+    const fingerprint = createShortKey(keys.join("|"));
+
+    return `${DM_PREFIX}${fingerprint}:${keys[0].slice(0, 12)}:${keys[1].slice(0, 12)}`;
 }
 
 export function parseDmRoom(room) {
     if (!isDmRoom(room)) return [];
 
-    return String(room)
+    const parts = String(room)
         .slice(DM_PREFIX.length)
         .split(":")
         .map(safeDecode)
         .map(normalizeAccountName)
         .filter(Boolean);
+
+    return parts.length >= 3 ? parts.slice(1, 3) : parts;
 }
 
 export function getDmPeer(room, currentAccount) {
-    const current = normalizeAccountName(currentAccount);
-    const currentKey = getAccountKey(current);
+    const currentKey = getAccountKey(currentAccount);
     const users = parseDmRoom(room);
-    const currentUser = users.find((user) => getAccountKey(user) === currentKey);
+    const currentUser = users.find((user) => accountKeysMatch(user, currentKey));
 
-    if (!current || users.length !== 2 || !currentUser) return "";
+    if (!currentKey || users.length !== 2 || !currentUser) return "";
 
-    return users.find((user) => getAccountKey(user) !== currentKey) || "";
+    return users.find((user) => !accountKeysMatch(user, currentKey)) || "";
 }
 
 export function formatDmTitle(accountName) {
@@ -78,6 +99,8 @@ export function renderDmList(options) {
         currentRoom,
         unreadCounts,
         showUnreadBadges,
+        hiddenDmRooms,
+        dmDisplayNames,
         onSelectDm,
         onDeleteDm
     } = options;
@@ -87,7 +110,9 @@ export function renderDmList(options) {
     const dmMap = new Map();
 
     (rooms || []).forEach((room) => {
-        const peer = getDmPeer(room, currentAccount);
+        if ((hiddenDmRooms || []).includes(room)) return;
+
+        const peer = dmDisplayNames?.[room] || getDmPeer(room, currentAccount);
         const key = getAccountKey(peer);
 
         if (peer && !dmMap.has(key)) {
@@ -126,7 +151,7 @@ export function renderDmList(options) {
         openButton.type = "button";
         openButton.className = "dm-open-btn";
         openButton.textContent = "開く";
-        openButton.addEventListener("click", () => onSelectDm(peer));
+        openButton.addEventListener("click", () => onSelectDm({ peer, room }));
 
         const deleteButton = document.createElement("button");
         deleteButton.type = "button";
@@ -145,7 +170,7 @@ export function renderDmList(options) {
 
         item.addEventListener("click", (event) => {
             if (event.target.closest("button")) return;
-            onSelectDm(peer);
+            onSelectDm({ peer, room });
         });
         elements.dmList.appendChild(item);
     });

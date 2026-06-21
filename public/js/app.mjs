@@ -31,8 +31,12 @@ import {
 import { renderRoomList } from "./rooms.mjs";
 import {
     loadLastRoom,
+    loadDmDisplayNames,
+    loadHiddenDmRooms,
     loadUnreadCounts,
     loadSettings,
+    saveDmDisplayNames,
+    saveHiddenDmRooms,
     saveLastRoom,
     saveSettings,
     saveUnreadCounts
@@ -59,6 +63,8 @@ const state = {
     user: null,
     currentRoom: "",
     rooms: [],
+    hiddenDmRooms: loadHiddenDmRooms(),
+    dmDisplayNames: loadDmDisplayNames(),
     unreadCounts: loadUnreadCounts(),
     settings: normalizeSettings(loadSettings()),
     visibleUnreadCount: 0,
@@ -196,9 +202,34 @@ function renderDms() {
         currentRoom: state.currentRoom,
         unreadCounts: state.unreadCounts,
         showUnreadBadges: state.settings.unreadBadges,
+        hiddenDmRooms: state.hiddenDmRooms,
+        dmDisplayNames: state.dmDisplayNames,
         onSelectDm: joinDm,
         onDeleteDm: deleteDm
     });
+}
+
+function rememberDmDisplayName(room, accountName) {
+    const displayName = normalizeAccountName(accountName);
+
+    if (!room || !displayName) return;
+
+    state.dmDisplayNames[room] = displayName;
+    saveDmDisplayNames(state.dmDisplayNames);
+}
+
+function hideDmRoom(room) {
+    if (!room || state.hiddenDmRooms.includes(room)) return;
+
+    state.hiddenDmRooms.push(room);
+    saveHiddenDmRooms(state.hiddenDmRooms);
+}
+
+function showDmRoom(room) {
+    if (!room || !state.hiddenDmRooms.includes(room)) return;
+
+    state.hiddenDmRooms = state.hiddenDmRooms.filter((hiddenRoom) => hiddenRoom !== room);
+    saveHiddenDmRooms(state.hiddenDmRooms);
 }
 
 function markRoomAsRead(room) {
@@ -212,7 +243,10 @@ function markRoomAsRead(room) {
 
 function incrementUnread(room) {
     if (!room || room === state.currentRoom) return;
-    if (isDmRoom(room) && !getDmPeer(room, getCurrentAccount())) return;
+    if (isDmRoom(room)) {
+        if (!getDmPeer(room, getCurrentAccount()) && !state.dmDisplayNames[room]) return;
+        showDmRoom(room);
+    }
 
     state.unreadCounts[room] = (state.unreadCounts[room] || 0) + 1;
     saveUnreadCounts(state.unreadCounts);
@@ -321,10 +355,12 @@ function joinRoom(value, options = {}) {
 function joinDm(value, options = {}) {
     const { updateRoute = true } = options;
     const currentAccount = getCurrentAccount();
-    const targetAccount = normalizeAccountName(value);
+    const targetAccount = normalizeAccountName(value?.peer || value);
+    const existingRoom = cleanText(value?.room, LIMITS.roomName);
     const room = createDmRoom(currentAccount, targetAccount);
+    const nextRoom = existingRoom || room;
 
-    if (!room || !state.user) return;
+    if (!nextRoom || !state.user) return;
 
     if (updateRoute) {
         navigateToDm(targetAccount);
@@ -333,17 +369,20 @@ function joinDm(value, options = {}) {
 
     typing.stopTyping();
 
-    state.currentRoom = room;
+    showDmRoom(nextRoom);
+    rememberDmDisplayName(nextRoom, targetAccount);
+
+    state.currentRoom = nextRoom;
     elements.roomInput.value = "";
     elements.dmInput.value = targetAccount;
     setCurrentConversationName(formatDmTitle(targetAccount));
-    markRoomAsRead(room);
+    markRoomAsRead(nextRoom);
     resetVisibleUnread();
-    saveLastRoom(room);
+    saveLastRoom(nextRoom);
     renderRooms();
     renderDms();
     showChatView();
-    emitJoinRoom(room);
+    emitJoinRoom(nextRoom);
 }
 
 function deleteDm(dm) {
@@ -355,6 +394,15 @@ function deleteDm(dm) {
     const confirmed = window.confirm(`@${targetAccount} とのDMを一覧から削除しますか？`);
 
     if (!confirmed) return;
+
+    hideDmRoom(room);
+    state.unreadCounts[room] = 0;
+    saveUnreadCounts(state.unreadCounts);
+    renderDms();
+
+    if (state.currentRoom === room) {
+        showRoomMenu("dms");
+    }
 
     socket.emit("delete dm room", {
         room
