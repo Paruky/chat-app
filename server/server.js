@@ -14,7 +14,9 @@ function createServer() {
 
     const app = express();
     const server = http.createServer(app);
-    const io = new Server(server);
+    const io = new Server(server, {
+        maxHttpBufferSize: Math.max(config.maxMessageLength + 200000, 1000000)
+    });
     const supabase = createSupabaseClient(config);
 
     app.use(express.static(config.publicDir));

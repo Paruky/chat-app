@@ -12,5 +12,6 @@ export const SUPABASE_CONFIG = {
 
 export const LIMITS = {
     roomName: 160,
-    message: 2000
+    message: 2000,
+    imageMessage: 900000
 };

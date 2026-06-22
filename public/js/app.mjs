@@ -1,4 +1,5 @@
 import { SOCKET_OPTIONS, SUPABASE_CONFIG, LIMITS } from "./config.mjs";
+import { prepareImageAttachment } from "./attachments.mjs";
 import {
     elements,
     setAppVersion,
@@ -68,7 +69,8 @@ const state = {
     unreadCounts: loadUnreadCounts(),
     settings: normalizeSettings(loadSettings()),
     visibleUnreadCount: 0,
-    shouldAutoScroll: true
+    shouldAutoScroll: true,
+    isSendingImage: false
 };
 
 setAppVersion(APP_VERSION);
@@ -264,6 +266,48 @@ function incrementVisibleUnread() {
     showNewMessageButton(state.visibleUnreadCount);
 }
 
+function setAttachmentMenuOpen(isOpen) {
+    elements.attachmentMenu.hidden = !isOpen;
+    elements.attachmentButton.setAttribute("aria-expanded", String(isOpen));
+}
+
+function sendCurrentRoomMessage(message) {
+    const profile = getUserProfile();
+
+    if (!message || !state.currentRoom || !state.user || !profile) return false;
+
+    socket.emit("chat message", {
+        room: state.currentRoom,
+        userId: state.user.id,
+        name: profile.name,
+        message,
+        avatar_url: profile.avatarUrl
+    });
+
+    return true;
+}
+
+async function sendPhoto(file) {
+    if (state.isSendingImage) return;
+
+    state.isSendingImage = true;
+    elements.attachmentButton.disabled = true;
+    elements.photoUploadButton.disabled = true;
+
+    try {
+        const payload = await prepareImageAttachment(file, LIMITS.imageMessage);
+        sendCurrentRoomMessage(payload);
+        setAttachmentMenuOpen(false);
+    } catch (error) {
+        window.alert(error.message || "写真を送信できませんでした");
+    } finally {
+        state.isSendingImage = false;
+        elements.attachmentButton.disabled = false;
+        elements.photoUploadButton.disabled = false;
+        elements.photoInput.value = "";
+    }
+}
+
 function emitJoinRoom(room) {
     const profile = getUserProfile();
 
@@ -300,6 +344,7 @@ function showRoomMenu(panel = "rooms") {
     const previousRoom = state.currentRoom;
 
     typing.stopTyping();
+    setAttachmentMenuOpen(false);
     state.currentRoom = "";
     elements.roomInput.value = "";
     elements.dmInput.value = "";
@@ -525,6 +570,30 @@ elements.settingsNavButton.addEventListener("click", () => {
     navigateToSettings();
 });
 
+elements.attachmentButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+
+    if (!state.currentRoom) return;
+
+    setAttachmentMenuOpen(elements.attachmentMenu.hidden);
+});
+
+elements.attachmentMenu.addEventListener("click", (event) => {
+    event.stopPropagation();
+});
+
+elements.photoUploadButton.addEventListener("click", () => {
+    elements.photoInput.click();
+});
+
+elements.photoInput.addEventListener("change", () => {
+    sendPhoto(elements.photoInput.files?.[0]);
+});
+
+window.addEventListener("click", () => {
+    setAttachmentMenuOpen(false);
+});
+
 elements.roomInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
         event.preventDefault();
@@ -552,19 +621,12 @@ elements.form.addEventListener("submit", (event) => {
     event.preventDefault();
 
     const message = cleanText(elements.input.value, LIMITS.message);
-    const profile = getUserProfile();
+    const sent = sendCurrentRoomMessage(message);
 
-    if (!message || !state.currentRoom || !state.user || !profile) return;
-
-    socket.emit("chat message", {
-        room: state.currentRoom,
-        userId: state.user.id,
-        name: profile.name,
-        message,
-        avatar_url: profile.avatarUrl
-    });
-
-    typing.resetInput();
+    if (sent) {
+        typing.resetInput();
+        setAttachmentMenuOpen(false);
+    }
 });
 
 socket.on("connect", () => {

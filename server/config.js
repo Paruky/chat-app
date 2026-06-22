@@ -8,7 +8,7 @@ function readConfig() {
         supabaseUrl: process.env.SUPABASE_URL,
         supabaseKey: process.env.SUPABASE_KEY,
         maxRoomNameLength: Number(process.env.MAX_ROOM_NAME_LENGTH || 160),
-        maxMessageLength: Number(process.env.MAX_MESSAGE_LENGTH || 2000)
+        maxMessageLength: Number(process.env.MAX_MESSAGE_LENGTH || 900000)
     };
 }
 

@@ -1,5 +1,6 @@
 import { elements } from "./dom.mjs";
 import { formatMessageTime } from "./formatters.mjs";
+import { parseMessagePayload } from "./messagePayloads.mjs";
 
 const BOTTOM_THRESHOLD = 120;
 const LONG_PRESS_DELAY = 520;
@@ -89,11 +90,40 @@ function enableMessageActions(item, data, onOpenMessageActions) {
     item.addEventListener("pointerleave", clearLongPress);
 }
 
+function createMessageBody(data) {
+    const payload = parseMessagePayload(data.message);
+    const body = document.createElement("div");
+    body.className = "message-body";
+
+    if (payload.type === "image") {
+        const figure = document.createElement("figure");
+        figure.className = "message-image-wrap";
+
+        const image = document.createElement("img");
+        image.className = "message-image";
+        image.src = payload.dataUrl;
+        image.alt = payload.name || "送信された写真";
+        image.loading = "lazy";
+
+        figure.appendChild(image);
+        body.appendChild(figure);
+        return body;
+    }
+
+    const text = document.createElement("div");
+    text.className = "message-text";
+    text.textContent = payload.text;
+    body.appendChild(text);
+
+    return body;
+}
+
 function createMessageElement(data, options) {
     const { currentUserId, onOpenMessageActions } = options;
     const item = document.createElement("div");
     item.className = "message";
     item.messageData = data;
+    const payload = parseMessagePayload(data.message);
 
     if (data.id) {
         item.dataset.messageId = data.id;
@@ -102,7 +132,7 @@ function createMessageElement(data, options) {
     if (data.userId && data.userId === currentUserId) {
         item.classList.add("my-message");
 
-        if (onOpenMessageActions) {
+        if (onOpenMessageActions && payload.type === "text") {
             enableMessageActions(item, data, onOpenMessageActions);
         }
     }
@@ -132,12 +162,8 @@ function createMessageElement(data, options) {
     time.className = "message-time";
     time.textContent = formatMessageTime(data.created_at);
 
-    const text = document.createElement("div");
-    text.className = "message-text";
-    text.textContent = data.message || "";
-
     top.append(name, time);
-    content.append(top, text);
+    content.append(top, createMessageBody(data));
     header.append(avatar, content);
     item.appendChild(header);
 
@@ -149,14 +175,14 @@ export function updateMessage(data) {
 
     const item = [...elements.messages.querySelectorAll(".message")]
         .find((message) => message.dataset.messageId === String(data.id));
-    const text = item?.querySelector(".message-text");
+    const body = item?.querySelector(".message-body");
 
-    if (text) {
+    if (body) {
         item.messageData = {
             ...item.messageData,
             ...data
         };
-        text.textContent = data.message || "";
+        body.replaceWith(createMessageBody(item.messageData));
     }
 }
 

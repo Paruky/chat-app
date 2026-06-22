@@ -102,6 +102,24 @@
             </button>
 
             <form id="form">
+                <button
+                    id="attachment-btn"
+                    type="button"
+                    aria-label="追加"
+                    aria-haspopup="menu"
+                    aria-expanded="false"
+                >
+                    +
+                </button>
+
+                <div id="attachment-menu" role="menu" hidden>
+                    <button id="photo-upload-btn" type="button" role="menuitem">
+                        写真を送信
+                    </button>
+                </div>
+
+                <input id="photo-input" type="file" accept="image/*" hidden>
+
                 <textarea
                     id="input"
                     placeholder="メッセージを入力"
