@@ -6,6 +6,9 @@ const BOTTOM_THRESHOLD = 120;
 const LONG_PRESS_DELAY = 520;
 const LONG_PRESS_MOVE_LIMIT = 12;
 const REPLY_CLICK_DELAY = 260;
+const SWIPE_REPLY_THRESHOLD = 58;
+const SWIPE_REPLY_MAX = 76;
+const SWIPE_VERTICAL_CANCEL = 20;
 
 export function isNearBottom() {
     return (
@@ -155,6 +158,82 @@ function enableReplyNavigation(item, data, callbacks) {
     });
 }
 
+function enableSwipeReply(item, data, options) {
+    const { isOwnMessage, onSwipeReply } = options;
+    const direction = isOwnMessage ? 1 : -1;
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+    let didSwipe = false;
+
+    function resetSwipe() {
+        tracking = false;
+        didSwipe = false;
+        item.style.transform = "";
+        item.classList.remove("message-swipe-ready");
+    }
+
+    item.addEventListener("pointerdown", (event) => {
+        if (event.pointerType === "mouse") return;
+
+        startX = event.clientX;
+        startY = event.clientY;
+        tracking = true;
+        didSwipe = false;
+        item.classList.add("message-swiping");
+    });
+
+    item.addEventListener("pointermove", (event) => {
+        if (!tracking) return;
+
+        const deltaX = event.clientX - startX;
+        const deltaY = event.clientY - startY;
+        const directedDelta = deltaX * direction;
+
+        if (Math.abs(deltaY) > SWIPE_VERTICAL_CANCEL && Math.abs(deltaY) > Math.abs(deltaX)) {
+            resetSwipe();
+            item.classList.remove("message-swiping");
+            return;
+        }
+
+        if (directedDelta <= 0) {
+            item.style.transform = "";
+            item.classList.remove("message-swipe-ready");
+            return;
+        }
+
+        const offset = Math.min(directedDelta, SWIPE_REPLY_MAX) * direction;
+        didSwipe = directedDelta >= SWIPE_REPLY_THRESHOLD;
+        item.style.transform = `translateX(${offset}px)`;
+        item.classList.toggle("message-swipe-ready", didSwipe);
+    });
+
+    item.addEventListener("pointerup", () => {
+        if (didSwipe) {
+            item.dataset.ignoreReplyTap = "true";
+            window.setTimeout(() => {
+                delete item.dataset.ignoreReplyTap;
+            }, 450);
+            onSwipeReply(data);
+        }
+
+        resetSwipe();
+        item.classList.remove("message-swiping");
+    });
+
+    item.addEventListener("pointercancel", () => {
+        resetSwipe();
+        item.classList.remove("message-swiping");
+    });
+
+    item.addEventListener("pointerleave", () => {
+        if (!tracking) return;
+
+        resetSwipe();
+        item.classList.remove("message-swiping");
+    });
+}
+
 function createReplyReference(replyTo, data, callbacks) {
     const { onOpenReplyThread, onJumpToReplySource } = callbacks;
     const reference = document.createElement("button");
@@ -224,7 +303,8 @@ function createMessageElement(data, options) {
         currentUserId,
         onOpenMessageActions,
         onOpenReplyThread,
-        onJumpToReplySource
+        onJumpToReplySource,
+        onSwipeReply
     } = options;
     const item = document.createElement("div");
     item.className = "message";
@@ -251,6 +331,13 @@ function createMessageElement(data, options) {
     if (onOpenMessageActions) {
         enableMessageActions(item, data, onOpenMessageActions, {
             canEdit: isOwnMessage && payload.type === "text"
+        });
+    }
+
+    if (onSwipeReply) {
+        enableSwipeReply(item, data, {
+            isOwnMessage,
+            onSwipeReply
         });
     }
 
@@ -320,7 +407,8 @@ export function appendMessage(data, options) {
         onUnread,
         onOpenMessageActions,
         onOpenReplyThread,
-        onJumpToReplySource
+        onJumpToReplySource,
+        onSwipeReply
     } = options;
 
     if (!data) return;
@@ -329,7 +417,8 @@ export function appendMessage(data, options) {
         currentUserId,
         onOpenMessageActions,
         onOpenReplyThread,
-        onJumpToReplySource
+        onJumpToReplySource,
+        onSwipeReply
     }));
 
     if (!trackUnread) return;
@@ -347,7 +436,8 @@ export function renderMessageHistory(messages, options) {
         currentUserId,
         onOpenMessageActions,
         onOpenReplyThread,
-        onJumpToReplySource
+        onJumpToReplySource,
+        onSwipeReply
     } = options;
 
     elements.messages.replaceChildren();
@@ -360,6 +450,7 @@ export function renderMessageHistory(messages, options) {
             onOpenMessageActions,
             onOpenReplyThread,
             onJumpToReplySource,
+            onSwipeReply,
             onUnread: () => {}
         });
     });

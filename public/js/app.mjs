@@ -731,7 +731,8 @@ socket.on("message history", (data) => {
         currentUserId: state.user?.id,
         onOpenMessageActions: messageActions.open,
         onOpenReplyThread: openReplyThread,
-        onJumpToReplySource: jumpToReplySource
+        onJumpToReplySource: jumpToReplySource,
+        onSwipeReply: startReply
     });
 });
 
@@ -755,6 +756,7 @@ socket.on("chat message", (data) => {
         onOpenMessageActions: messageActions.open,
         onOpenReplyThread: openReplyThread,
         onJumpToReplySource: jumpToReplySource,
+        onSwipeReply: startReply,
         onUnread: incrementVisibleUnread
     });
 });

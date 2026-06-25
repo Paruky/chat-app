@@ -145,9 +145,28 @@ body {
     animation: messageIn 0.3s ease;
 }
 
+.message-swiping {
+    transition: none;
+}
+
+.message:not(.message-swiping) {
+    transition:
+        transform 0.18s ease,
+        outline-color 0.18s ease;
+}
+
+.message-swipe-ready {
+    outline: 2px solid var(--accent-hover);
+    outline-offset: 3px;
+}
+
 .message-focus {
     outline: 2px solid var(--accent-hover);
     outline-offset: 3px;
+}
+
+.message {
+    touch-action: pan-y;
 }
 
 .my-message {
