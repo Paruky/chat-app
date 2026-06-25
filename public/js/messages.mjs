@@ -162,10 +162,16 @@ function enableSwipeReply(item, data, options) {
     const { onSwipeReply } = options;
     let startX = 0;
     let startY = 0;
+    let activePointerId = null;
     let tracking = false;
     let didSwipe = false;
 
     function resetSwipe() {
+        if (activePointerId !== null && item.hasPointerCapture?.(activePointerId)) {
+            item.releasePointerCapture(activePointerId);
+        }
+
+        activePointerId = null;
         tracking = false;
         didSwipe = false;
         item.style.transform = "";
@@ -177,13 +183,15 @@ function enableSwipeReply(item, data, options) {
 
         startX = event.clientX;
         startY = event.clientY;
+        activePointerId = event.pointerId;
         tracking = true;
         didSwipe = false;
+        item.setPointerCapture?.(event.pointerId);
         item.classList.add("message-swiping");
     });
 
     item.addEventListener("pointermove", (event) => {
-        if (!tracking) return;
+        if (!tracking || event.pointerId !== activePointerId) return;
 
         const deltaX = event.clientX - startX;
         const deltaY = event.clientY - startY;
@@ -207,7 +215,9 @@ function enableSwipeReply(item, data, options) {
         item.classList.toggle("message-swipe-ready", didSwipe);
     });
 
-    item.addEventListener("pointerup", () => {
+    item.addEventListener("pointerup", (event) => {
+        if (event.pointerId !== activePointerId) return;
+
         if (didSwipe) {
             item.dataset.ignoreReplyTap = "true";
             window.setTimeout(() => {
@@ -220,13 +230,8 @@ function enableSwipeReply(item, data, options) {
         item.classList.remove("message-swiping");
     });
 
-    item.addEventListener("pointercancel", () => {
-        resetSwipe();
-        item.classList.remove("message-swiping");
-    });
-
-    item.addEventListener("pointerleave", () => {
-        if (!tracking) return;
+    item.addEventListener("pointercancel", (event) => {
+        if (event.pointerId !== activePointerId) return;
 
         resetSwipe();
         item.classList.remove("message-swiping");
