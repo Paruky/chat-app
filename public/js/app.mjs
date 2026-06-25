@@ -32,6 +32,12 @@ import {
     setupReplyThreadPanel
 } from "./replyThreads.mjs";
 import {
+    getNotificationStatus,
+    isNotificationSupported,
+    subscribeToNotifications,
+    unsubscribeFromNotifications
+} from "./notifications.mjs";
+import {
     createDmRoom,
     formatDmTitle,
     getDmPeer,
@@ -82,7 +88,15 @@ const state = {
     replyTarget: null,
     visibleUnreadCount: 0,
     shouldAutoScroll: true,
-    isSendingImage: false
+    isSendingImage: false,
+    notificationStatus: {
+        supported: isNotificationSupported(),
+        configured: false,
+        subscribed: false,
+        permission: "default",
+        busy: false,
+        message: "通知の状態を確認中"
+    }
 };
 
 setAppVersion(APP_VERSION);
@@ -414,10 +428,151 @@ function showRoomMenu(panel = "rooms") {
     showMenuPanel(panel);
     showRoomsView();
 
+    if (panel === "settings") {
+        refreshNotificationStatus();
+    }
+
     if (previousRoom) {
         socket.emit("leave room", {
             room: previousRoom
         });
+    }
+}
+
+function syncNotificationSetting(subscribed) {
+    if (state.settings.pushNotifications === subscribed) return;
+
+    state.settings = normalizeSettings({
+        ...state.settings,
+        pushNotifications: subscribed
+    });
+    saveSettings(state.settings);
+    settingsPanel.syncControls();
+}
+
+function getNotificationUi() {
+    const status = state.notificationStatus;
+
+    if (status.busy) {
+        return {
+            note: "通知設定を更新中",
+            buttonText: status.subscribed ? "通知をオフにする" : "通知をオンにする",
+            disabled: true
+        };
+    }
+
+    if (!status.supported) {
+        return {
+            note: "この環境では通知が使えません",
+            buttonText: "通知をオンにする",
+            disabled: true
+        };
+    }
+
+    if (!status.configured) {
+        return {
+            note: "サーバー側の通知キーが未設定です",
+            buttonText: "通知をオンにする",
+            disabled: true
+        };
+    }
+
+    if (status.permission === "denied") {
+        return {
+            note: "ブラウザ設定で通知がブロックされています",
+            buttonText: "通知をオンにする",
+            disabled: true
+        };
+    }
+
+    if (status.message) {
+        return {
+            note: status.message,
+            buttonText: status.subscribed ? "通知をオフにする" : "通知をオンにする",
+            disabled: false
+        };
+    }
+
+    if (status.subscribed) {
+        return {
+            note: "通知オン。新着メッセージを端末に表示します",
+            buttonText: "通知をオフにする",
+            disabled: false
+        };
+    }
+
+    return {
+        note: "iPhoneはホーム画面に追加したアプリからオンにできます",
+        buttonText: "通知をオンにする",
+        disabled: false
+    };
+}
+
+function renderNotificationSettings() {
+    const ui = getNotificationUi();
+
+    elements.notificationStatus.textContent = ui.note;
+    elements.notificationsButton.textContent = ui.buttonText;
+    elements.notificationsButton.disabled = ui.disabled || !state.user;
+}
+
+async function refreshNotificationStatus() {
+    state.notificationStatus = {
+        ...state.notificationStatus,
+        busy: true,
+        message: "通知の状態を確認中"
+    };
+    renderNotificationSettings();
+
+    try {
+        const status = await getNotificationStatus();
+
+        state.notificationStatus = {
+            ...status,
+            busy: false,
+            message: ""
+        };
+        syncNotificationSetting(status.subscribed);
+    } catch (error) {
+        state.notificationStatus = {
+            supported: isNotificationSupported(),
+            configured: false,
+            subscribed: false,
+            permission: "default",
+            busy: false,
+            message: error.message || "通知の状態を確認できませんでした"
+        };
+        syncNotificationSetting(false);
+    }
+
+    renderNotificationSettings();
+}
+
+async function togglePushNotifications() {
+    state.notificationStatus = {
+        ...state.notificationStatus,
+        busy: true,
+        message: state.notificationStatus.subscribed ? "通知をオフにしています" : "通知をオンにしています"
+    };
+    renderNotificationSettings();
+
+    try {
+        if (state.notificationStatus.subscribed) {
+            await unsubscribeFromNotifications();
+            syncNotificationSetting(false);
+        } else {
+            await subscribeToNotifications(state.user?.id, getCurrentAccount());
+            syncNotificationSetting(true);
+        }
+
+        await refreshNotificationStatus();
+    } catch (error) {
+        state.notificationStatus = {
+            ...state.notificationStatus,
+            busy: false,
+            message: error.message || "通知設定を変更できませんでした"
+        };
+        renderNotificationSettings();
     }
 }
 
@@ -426,6 +581,7 @@ function updateSettings(nextSettings) {
     saveSettings(state.settings);
     applySettings(state.settings);
     settingsPanel.syncControls();
+    renderNotificationSettings();
     renderRooms();
     renderDms();
 }
@@ -539,6 +695,7 @@ async function checkUser() {
     const profile = getUserProfile();
     setUserBar(profile);
     setLoading(false);
+    refreshNotificationStatus();
 
     const savedRoom = cleanText(loadLastRoom(), LIMITS.roomName);
 
@@ -638,6 +795,10 @@ elements.dmsNavButton.addEventListener("click", () => {
 
 elements.settingsNavButton.addEventListener("click", () => {
     navigateToSettings();
+});
+
+elements.notificationsButton.addEventListener("click", () => {
+    togglePushNotifications();
 });
 
 elements.attachmentButton.addEventListener("click", (event) => {

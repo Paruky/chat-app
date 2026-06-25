@@ -33,6 +33,7 @@ export const THEMES = [
 
 export const DEFAULT_SETTINGS = {
     unreadBadges: true,
+    pushNotifications: false,
     theme: "dark",
     compactMode: false
 };
@@ -46,6 +47,7 @@ export function normalizeSettings(settings) {
     };
 
     nextSettings.unreadBadges = nextSettings.unreadBadges !== false;
+    nextSettings.pushNotifications = nextSettings.pushNotifications === true;
     nextSettings.compactMode = nextSettings.compactMode === true;
 
     if (!THEME_VALUES.has(nextSettings.theme)) {

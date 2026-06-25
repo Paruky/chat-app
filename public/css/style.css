@@ -1150,6 +1150,10 @@ textarea {
     gap: 16px;
 }
 
+.notification-setting {
+    align-items: flex-start;
+}
+
 .setting-title,
 .setting-note {
     display: block;
@@ -1163,6 +1167,19 @@ textarea {
     margin-top: 4px;
     color: var(--text-sub);
     font-size: 13px;
+}
+
+.setting-action-btn {
+    min-width: 148px;
+    padding: 11px 13px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.setting-action-btn:disabled {
+    cursor: default;
+    opacity: 0.58;
 }
 
 .switch {
@@ -1310,6 +1327,19 @@ body.compact-mode #messages {
 
     .menu-nav-item {
         padding: 12px 10px;
+    }
+
+    .setting-card-horizontal {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .setting-card-horizontal .switch {
+        align-self: flex-end;
+    }
+
+    .setting-action-btn {
+        width: 100%;
     }
 
     .room-item {

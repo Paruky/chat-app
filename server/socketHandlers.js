@@ -22,6 +22,7 @@ function registerSocketHandlers(io, dependencies) {
     const {
         roomsRepository,
         messagesRepository,
+        pushNotifications,
         maxRoomNameLength,
         maxMessageLength
     } = dependencies;
@@ -137,6 +138,10 @@ function registerSocketHandlers(io, dependencies) {
                     room,
                     userId: data.userId || ""
                 });
+
+                pushNotifications
+                    ?.notifyMessage(insertedMessage)
+                    .catch((error) => logSocketError("push-notification", error));
             } catch (error) {
                 logSocketError("chat-message", error);
                 socket.emit("server error", {

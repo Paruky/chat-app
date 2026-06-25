@@ -21,5 +21,7 @@
 
 ## Notifications
 
-- Decide whether to build full push notifications with `web-push`.
+- Set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` in Render.
+- Create the `push_subscriptions` table in Supabase for persistent notifications.
+- Test push notifications on an iPhone Home Screen PWA before calling this Alpha 1.0.
 - Keep unread badges reliable across reloads.

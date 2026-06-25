@@ -43,6 +43,8 @@ export const elements = {
     currentRoomName: byId("current-room-name"),
     userBar: byId("user-bar"),
     unreadBadgesToggle: byId("setting-unread-badges"),
+    notificationsButton: byId("setting-notifications-btn"),
+    notificationStatus: byId("notification-status"),
     compactModeToggle: byId("setting-compact-mode"),
     themeOptions: byId("theme-options"),
     appVersion: byId("app-version")
