@@ -159,8 +159,7 @@ function enableReplyNavigation(item, data, callbacks) {
 }
 
 function enableSwipeReply(item, data, options) {
-    const { isOwnMessage, onSwipeReply } = options;
-    const direction = isOwnMessage ? 1 : -1;
+    const { onSwipeReply } = options;
     let startX = 0;
     let startY = 0;
     let tracking = false;
@@ -188,7 +187,7 @@ function enableSwipeReply(item, data, options) {
 
         const deltaX = event.clientX - startX;
         const deltaY = event.clientY - startY;
-        const directedDelta = deltaX * direction;
+        const directedDelta = deltaX;
 
         if (Math.abs(deltaY) > SWIPE_VERTICAL_CANCEL && Math.abs(deltaY) > Math.abs(deltaX)) {
             resetSwipe();
@@ -202,7 +201,7 @@ function enableSwipeReply(item, data, options) {
             return;
         }
 
-        const offset = Math.min(directedDelta, SWIPE_REPLY_MAX) * direction;
+        const offset = Math.min(directedDelta, SWIPE_REPLY_MAX);
         didSwipe = directedDelta >= SWIPE_REPLY_THRESHOLD;
         item.style.transform = `translateX(${offset}px)`;
         item.classList.toggle("message-swipe-ready", didSwipe);
@@ -336,7 +335,6 @@ function createMessageElement(data, options) {
 
     if (onSwipeReply) {
         enableSwipeReply(item, data, {
-            isOwnMessage,
             onSwipeReply
         });
     }
