@@ -31,9 +31,9 @@ function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
 
-function positionMenu(menu, anchor) {
+function positionMenu(menu, anchor, actionCount) {
     const menuWidth = 180;
-    const menuHeight = 56;
+    const menuHeight = actionCount * 50;
     const padding = 12;
     const x = clamp(anchor.x, padding, window.innerWidth - menuWidth - padding);
     const y = clamp(anchor.y, padding, window.innerHeight - menuHeight - padding);
@@ -42,20 +42,34 @@ function positionMenu(menu, anchor) {
     menu.style.top = `${y}px`;
 }
 
-function renderMenu(menu, message, onEditClick) {
+function renderMenu(menu, selectedMessage, callbacks) {
+    const { onEditClick, onReplyClick } = callbacks;
     menu.replaceChildren();
 
     const list = document.createElement("div");
     list.className = "message-action-list";
 
-    const editButton = document.createElement("button");
-    editButton.type = "button";
-    editButton.className = "message-action-item";
-    editButton.textContent = "編集";
-    editButton.addEventListener("click", () => onEditClick(message));
+    const replyButton = document.createElement("button");
+    replyButton.type = "button";
+    replyButton.className = "message-action-item";
+    replyButton.textContent = "返信";
+    replyButton.addEventListener("click", () => onReplyClick(selectedMessage.message));
 
-    list.appendChild(editButton);
+    list.appendChild(replyButton);
+
+    if (selectedMessage.canEdit) {
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "message-action-item";
+        editButton.textContent = "編集";
+        editButton.addEventListener("click", () => onEditClick(selectedMessage.message));
+
+        list.appendChild(editButton);
+    }
+
     menu.appendChild(list);
+
+    return list.childElementCount;
 }
 
 function renderEditor(editor, message, callbacks) {
@@ -100,7 +114,7 @@ function renderEditor(editor, message, callbacks) {
     });
 }
 
-export function setupMessageActions({ onEdit }) {
+export function setupMessageActions({ onEdit, onReply }) {
     const ui = createActionLayer();
     let selectedMessage = null;
 
@@ -123,8 +137,16 @@ export function setupMessageActions({ onEdit }) {
         });
     }
 
-    function open({ message, anchor, source }) {
-        selectedMessage = message;
+    function startReply(message) {
+        onReply(message);
+        close();
+    }
+
+    function open({ message, anchor, source, canEdit = false }) {
+        selectedMessage = {
+            message,
+            canEdit
+        };
         ui.layer.hidden = false;
         ui.layer.classList.remove("editing", "mobile");
 
@@ -132,10 +154,13 @@ export function setupMessageActions({ onEdit }) {
             ui.layer.classList.add("mobile");
         }
 
-        renderMenu(ui.menu, selectedMessage, openEditor);
+        const actionCount = renderMenu(ui.menu, selectedMessage, {
+            onEditClick: openEditor,
+            onReplyClick: startReply
+        });
 
         if (source !== LONG_PRESS_SOURCE && anchor) {
-            positionMenu(ui.menu, anchor);
+            positionMenu(ui.menu, anchor, actionCount);
         } else {
             ui.menu.style.left = "";
             ui.menu.style.top = "";

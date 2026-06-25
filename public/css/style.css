@@ -145,6 +145,11 @@ body {
     animation: messageIn 0.3s ease;
 }
 
+.message-focus {
+    outline: 2px solid var(--accent-hover);
+    outline-offset: 3px;
+}
+
 .my-message {
     margin-left: auto;
     background: var(--accent);
@@ -192,6 +197,18 @@ form {
     z-index: 20;
 
     padding-bottom: calc(10px + env(safe-area-inset-bottom));
+}
+
+#form {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.composer-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
 }
 
 input, textarea {
@@ -258,6 +275,48 @@ button {
 
 #photo-upload-btn:hover {
     background: rgba(255, 255, 255, 0.08);
+}
+
+#reply-composer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 44px;
+    padding: 9px 10px 9px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    background: var(--bg-card);
+}
+
+#reply-composer[hidden] {
+    display: none;
+}
+
+#reply-composer-label {
+    color: var(--accent-hover);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#reply-composer-preview {
+    margin-top: 3px;
+    color: var(--text-main);
+    font-size: 14px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#reply-cancel-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--bg-message);
+    color: var(--text-sub);
 }
 
 .system-message {
@@ -374,6 +433,10 @@ button {
 
 #chat-container:has(#chat-view:not([hidden])) #app-version {
     bottom: calc(82px + env(safe-area-inset-bottom));
+}
+
+#chat-container:has(#reply-composer:not([hidden])) #app-version {
+    bottom: calc(134px + env(safe-area-inset-bottom));
 }
 
 #main-chat {
@@ -557,6 +620,36 @@ textarea {
     word-break: break-word;
 }
 
+.reply-reference {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    border-left: 3px solid rgba(255, 255, 255, 0.45);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: inherit;
+    text-align: left;
+}
+
+.reply-reference-label {
+    font-size: 12px;
+    font-weight: 700;
+    opacity: 0.86;
+}
+
+.reply-reference-preview {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    opacity: 0.76;
+}
+
 .message-image-wrap {
     margin: 0;
 }
@@ -695,6 +788,96 @@ textarea {
 .message-edit-save {
     background: var(--accent);
 }
+
+.reply-thread-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 560;
+}
+
+.reply-thread-layer[hidden] {
+    display: none;
+}
+
+.reply-thread-scrim {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgba(0, 0, 0, 0.34);
+    cursor: default;
+}
+
+.reply-thread-panel {
+    position: absolute;
+    left: 50%;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    width: min(520px, calc(100vw - 24px));
+    max-height: min(70dvh, 620px);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-50%);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px;
+    background: rgba(34, 34, 34, 0.98);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(18px);
+}
+
+.reply-thread-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.reply-thread-close {
+    padding: 9px 12px;
+    background: var(--bg-message);
+    color: var(--text-sub);
+    font-size: 13px;
+}
+
+.reply-thread-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.reply-thread-message {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    padding: 12px;
+    background: var(--bg-message);
+    color: var(--text-main);
+    text-align: left;
+}
+
+.reply-thread-message:hover {
+    background: var(--bg-card);
+}
+
+.reply-thread-meta,
+.reply-thread-source {
+    color: var(--text-sub);
+    font-size: 12px;
+}
+
+.reply-thread-text {
+    font-size: 14px;
+    line-height: 1.35;
+}
+
 #user-bar {
     display: flex;
     align-items: center;
@@ -785,6 +968,10 @@ textarea {
     transform:
         translateX(-50%)
         translateY(0);
+}
+
+#main-chat:has(#reply-composer:not([hidden])) #new-message-btn {
+    bottom: 142px;
 }
 
 #new-message-btn:hover {

@@ -5,6 +5,7 @@ import { parseMessagePayload } from "./messagePayloads.mjs";
 const BOTTOM_THRESHOLD = 120;
 const LONG_PRESS_DELAY = 520;
 const LONG_PRESS_MOVE_LIMIT = 12;
+const REPLY_CLICK_DELAY = 260;
 
 export function isNearBottom() {
     return (
@@ -30,7 +31,32 @@ export function hideNewMessageButton() {
     elements.newMessageButton.classList.remove("show");
 }
 
-function enableMessageActions(item, data, onOpenMessageActions) {
+function findMessageElement(messageId) {
+    if (!messageId) return null;
+
+    return [...elements.messages.querySelectorAll(".message")]
+        .find((message) => message.dataset.messageId === String(messageId));
+}
+
+export function scrollToMessage(messageId) {
+    const item = findMessageElement(messageId);
+
+    if (!item) return false;
+
+    item.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+    });
+
+    item.classList.add("message-focus");
+    window.setTimeout(() => {
+        item.classList.remove("message-focus");
+    }, 1400);
+
+    return true;
+}
+
+function enableMessageActions(item, data, onOpenMessageActions, actionState) {
     let longPressTimer = null;
     let startX = 0;
     let startY = 0;
@@ -40,10 +66,19 @@ function enableMessageActions(item, data, onOpenMessageActions) {
         longPressTimer = null;
     }
 
+    function suppressReplyTap() {
+        item.dataset.ignoreReplyTap = "true";
+        window.setTimeout(() => {
+            delete item.dataset.ignoreReplyTap;
+        }, 450);
+    }
+
     item.addEventListener("contextmenu", (event) => {
         event.preventDefault();
+        suppressReplyTap();
         onOpenMessageActions({
             message: item.messageData,
+            canEdit: actionState.canEdit,
             source: "contextmenu",
             anchor: {
                 x: event.clientX,
@@ -64,8 +99,10 @@ function enableMessageActions(item, data, onOpenMessageActions) {
         clearLongPress();
 
         longPressTimer = setTimeout(() => {
+            suppressReplyTap();
             onOpenMessageActions({
                 message: item.messageData,
+                canEdit: actionState.canEdit,
                 source: "longpress",
                 anchor: {
                     x: startX,
@@ -90,8 +127,72 @@ function enableMessageActions(item, data, onOpenMessageActions) {
     item.addEventListener("pointerleave", clearLongPress);
 }
 
-function createMessageBody(data) {
-    const payload = parseMessagePayload(data.message);
+function enableReplyNavigation(item, data, callbacks) {
+    const { onOpenReplyThread, onJumpToReplySource } = callbacks;
+    let clickTimer = null;
+
+    item.addEventListener("click", (event) => {
+        const target = event.target;
+
+        if (
+            item.dataset.ignoreReplyTap ||
+            (target instanceof Element && target.closest("button"))
+        ) {
+            return;
+        }
+
+        if (clickTimer) {
+            clearTimeout(clickTimer);
+            clickTimer = null;
+            onJumpToReplySource(data);
+            return;
+        }
+
+        clickTimer = window.setTimeout(() => {
+            clickTimer = null;
+            onOpenReplyThread(data);
+        }, REPLY_CLICK_DELAY);
+    });
+}
+
+function createReplyReference(replyTo, data, callbacks) {
+    const { onOpenReplyThread, onJumpToReplySource } = callbacks;
+    const reference = document.createElement("button");
+    let clickTimer = null;
+
+    reference.type = "button";
+    reference.className = "reply-reference";
+
+    const label = document.createElement("span");
+    label.className = "reply-reference-label";
+    label.textContent = `${replyTo.name} に返信`;
+
+    const preview = document.createElement("span");
+    preview.className = "reply-reference-preview";
+    preview.textContent = replyTo.previewType === "image" ? "写真" : replyTo.preview;
+
+    reference.append(label, preview);
+    reference.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (clickTimer) {
+            clearTimeout(clickTimer);
+            clickTimer = null;
+            onJumpToReplySource(data);
+            return;
+        }
+
+        clickTimer = window.setTimeout(() => {
+            clickTimer = null;
+            onOpenReplyThread(data);
+        }, REPLY_CLICK_DELAY);
+    });
+
+    return reference;
+}
+
+function createMessageBody(payload) {
     const body = document.createElement("div");
     body.className = "message-body";
 
@@ -119,22 +220,38 @@ function createMessageBody(data) {
 }
 
 function createMessageElement(data, options) {
-    const { currentUserId, onOpenMessageActions } = options;
+    const {
+        currentUserId,
+        onOpenMessageActions,
+        onOpenReplyThread,
+        onJumpToReplySource
+    } = options;
     const item = document.createElement("div");
     item.className = "message";
     item.messageData = data;
     const payload = parseMessagePayload(data.message);
+    const isOwnMessage = data.userId && data.userId === currentUserId;
 
     if (data.id) {
         item.dataset.messageId = data.id;
     }
 
-    if (data.userId && data.userId === currentUserId) {
+    if (isOwnMessage) {
         item.classList.add("my-message");
+    }
 
-        if (onOpenMessageActions && payload.type === "text") {
-            enableMessageActions(item, data, onOpenMessageActions);
-        }
+    if (payload.type === "reply") {
+        item.classList.add("reply-message");
+        enableReplyNavigation(item, data, {
+            onOpenReplyThread,
+            onJumpToReplySource
+        });
+    }
+
+    if (onOpenMessageActions) {
+        enableMessageActions(item, data, onOpenMessageActions, {
+            canEdit: isOwnMessage && payload.type === "text"
+        });
     }
 
     const header = document.createElement("div");
@@ -163,7 +280,16 @@ function createMessageElement(data, options) {
     time.textContent = formatMessageTime(data.created_at);
 
     top.append(name, time);
-    content.append(top, createMessageBody(data));
+    content.append(top);
+
+    if (payload.type === "reply") {
+        content.append(createReplyReference(payload.replyTo, data, {
+            onOpenReplyThread,
+            onJumpToReplySource
+        }));
+    }
+
+    content.append(createMessageBody(payload));
     header.append(avatar, content);
     item.appendChild(header);
 
@@ -182,7 +308,7 @@ export function updateMessage(data) {
             ...item.messageData,
             ...data
         };
-        body.replaceWith(createMessageBody(item.messageData));
+        body.replaceWith(createMessageBody(parseMessagePayload(item.messageData.message)));
     }
 }
 
@@ -192,14 +318,18 @@ export function appendMessage(data, options) {
         shouldAutoScroll,
         trackUnread = true,
         onUnread,
-        onOpenMessageActions
+        onOpenMessageActions,
+        onOpenReplyThread,
+        onJumpToReplySource
     } = options;
 
     if (!data) return;
 
     elements.messages.appendChild(createMessageElement(data, {
         currentUserId,
-        onOpenMessageActions
+        onOpenMessageActions,
+        onOpenReplyThread,
+        onJumpToReplySource
     }));
 
     if (!trackUnread) return;
@@ -213,7 +343,12 @@ export function appendMessage(data, options) {
 }
 
 export function renderMessageHistory(messages, options) {
-    const { currentUserId, onOpenMessageActions } = options;
+    const {
+        currentUserId,
+        onOpenMessageActions,
+        onOpenReplyThread,
+        onJumpToReplySource
+    } = options;
 
     elements.messages.replaceChildren();
 
@@ -223,6 +358,8 @@ export function renderMessageHistory(messages, options) {
             shouldAutoScroll: false,
             trackUnread: false,
             onOpenMessageActions,
+            onOpenReplyThread,
+            onJumpToReplySource,
             onUnread: () => {}
         });
     });

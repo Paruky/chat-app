@@ -17,10 +17,20 @@ import {
     isNearBottom,
     renderMessageHistory,
     scrollMessagesToBottom,
+    scrollToMessage,
     showNewMessageButton,
     updateMessage
 } from "./messages.mjs";
 import { setupMessageActions } from "./messageActions.mjs";
+import {
+    createReplyMessagePayload,
+    createReplyTarget,
+    parseMessagePayload
+} from "./messagePayloads.mjs";
+import {
+    collectReplyThread,
+    setupReplyThreadPanel
+} from "./replyThreads.mjs";
 import {
     createDmRoom,
     formatDmTitle,
@@ -68,6 +78,8 @@ const state = {
     dmDisplayNames: loadDmDisplayNames(),
     unreadCounts: loadUnreadCounts(),
     settings: normalizeSettings(loadSettings()),
+    currentMessages: [],
+    replyTarget: null,
     visibleUnreadCount: 0,
     shouldAutoScroll: true,
     isSendingImage: false
@@ -271,6 +283,51 @@ function setAttachmentMenuOpen(isOpen) {
     elements.attachmentButton.setAttribute("aria-expanded", String(isOpen));
 }
 
+function renderReplyComposer() {
+    if (!state.replyTarget) {
+        elements.replyComposer.hidden = true;
+        elements.replyComposerLabel.textContent = "返信先";
+        elements.replyComposerPreview.textContent = "";
+        return;
+    }
+
+    elements.replyComposer.hidden = false;
+    elements.replyComposerLabel.textContent = `${state.replyTarget.name} に返信`;
+    elements.replyComposerPreview.textContent = state.replyTarget.preview;
+}
+
+function clearReplyTarget() {
+    state.replyTarget = null;
+    renderReplyComposer();
+}
+
+function startReply(message) {
+    if (!message?.id) return;
+
+    state.replyTarget = createReplyTarget(message);
+    setAttachmentMenuOpen(false);
+    renderReplyComposer();
+    elements.input.focus();
+}
+
+function jumpToReplySource(message) {
+    const payload = parseMessagePayload(message?.message);
+
+    if (payload.type !== "reply") return;
+
+    const moved = scrollToMessage(payload.replyTo.id);
+
+    if (!moved) {
+        window.alert("返信元のメッセージが見つかりませんでした");
+    }
+}
+
+function openReplyThread(message) {
+    const thread = collectReplyThread(state.currentMessages, message);
+
+    replyThreadPanel.open(thread.length > 0 ? thread : [message]);
+}
+
 function sendCurrentRoomMessage(message) {
     const profile = getUserProfile();
 
@@ -345,6 +402,8 @@ function showRoomMenu(panel = "rooms") {
 
     typing.stopTyping();
     setAttachmentMenuOpen(false);
+    clearReplyTarget();
+    state.currentMessages = [];
     state.currentRoom = "";
     elements.roomInput.value = "";
     elements.dmInput.value = "";
@@ -513,7 +572,18 @@ const typing = setupTypingInput({
 });
 
 const messageActions = setupMessageActions({
-    onEdit: emitEditMessage
+    onEdit: emitEditMessage,
+    onReply: startReply
+});
+
+const replyThreadPanel = setupReplyThreadPanel({
+    onScrollToMessage: (messageId) => {
+        const moved = scrollToMessage(messageId);
+
+        if (!moved) {
+            window.alert("メッセージが見つかりませんでした");
+        }
+    }
 });
 
 const settingsPanel = setupSettingsPanel({
@@ -590,6 +660,11 @@ elements.photoInput.addEventListener("change", () => {
     sendPhoto(elements.photoInput.files?.[0]);
 });
 
+elements.replyCancelButton.addEventListener("click", () => {
+    clearReplyTarget();
+    elements.input.focus();
+});
+
 window.addEventListener("click", () => {
     setAttachmentMenuOpen(false);
 });
@@ -620,12 +695,22 @@ elements.input.addEventListener("keydown", (event) => {
 elements.form.addEventListener("submit", (event) => {
     event.preventDefault();
 
-    const message = cleanText(elements.input.value, LIMITS.message);
+    const text = cleanText(elements.input.value, LIMITS.message);
+
+    if (!text) return;
+
+    const message = state.replyTarget
+        ? createReplyMessagePayload({
+            text,
+            replyTo: state.replyTarget
+        })
+        : text;
     const sent = sendCurrentRoomMessage(message);
 
     if (sent) {
         typing.resetInput();
         setAttachmentMenuOpen(false);
+        clearReplyTarget();
     }
 });
 
@@ -640,10 +725,13 @@ socket.on("disconnect", () => {
 });
 
 socket.on("message history", (data) => {
+    state.currentMessages = data || [];
     resetVisibleUnread();
     renderMessageHistory(data, {
         currentUserId: state.user?.id,
-        onOpenMessageActions: messageActions.open
+        onOpenMessageActions: messageActions.open,
+        onOpenReplyThread: openReplyThread,
+        onJumpToReplySource: jumpToReplySource
     });
 });
 
@@ -660,15 +748,26 @@ socket.on("room list", (rooms) => {
 socket.on("chat message", (data) => {
     if (data?.room && data.room !== state.currentRoom) return;
 
+    state.currentMessages.push(data);
     appendMessage(data, {
         currentUserId: state.user?.id,
         shouldAutoScroll: state.shouldAutoScroll,
         onOpenMessageActions: messageActions.open,
+        onOpenReplyThread: openReplyThread,
+        onJumpToReplySource: jumpToReplySource,
         onUnread: incrementVisibleUnread
     });
 });
 
 socket.on("message edited", (data) => {
+    state.currentMessages = state.currentMessages.map((message) =>
+        String(message.id) === String(data?.id)
+            ? {
+                ...message,
+                ...data
+            }
+            : message
+    );
     updateMessage(data);
 });
 

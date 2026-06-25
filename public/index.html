@@ -102,33 +102,45 @@
             </button>
 
             <form id="form">
-                <button
-                    id="attachment-btn"
-                    type="button"
-                    aria-label="追加"
-                    aria-haspopup="menu"
-                    aria-expanded="false"
-                >
-                    +
-                </button>
-
-                <div id="attachment-menu" role="menu" hidden>
-                    <button id="photo-upload-btn" type="button" role="menuitem">
-                        写真を送信
+                <div id="reply-composer" hidden>
+                    <div>
+                        <div id="reply-composer-label">返信先</div>
+                        <div id="reply-composer-preview"></div>
+                    </div>
+                    <button id="reply-cancel-btn" type="button" aria-label="返信をキャンセル">
+                        ×
                     </button>
                 </div>
 
-                <input id="photo-input" type="file" accept="image/*" hidden>
+                <div class="composer-row">
+                    <button
+                        id="attachment-btn"
+                        type="button"
+                        aria-label="追加"
+                        aria-haspopup="menu"
+                        aria-expanded="false"
+                    >
+                        +
+                    </button>
 
-                <textarea
-                    id="input"
-                    placeholder="メッセージを入力"
-                    rows="1"
-                ></textarea>
+                    <div id="attachment-menu" role="menu" hidden>
+                        <button id="photo-upload-btn" type="button" role="menuitem">
+                            写真を送信
+                        </button>
+                    </div>
 
-                <button type="submit">
-                    送信
-                </button>
+                    <input id="photo-input" type="file" accept="image/*" hidden>
+
+                    <textarea
+                        id="input"
+                        placeholder="メッセージを入力"
+                        rows="1"
+                    ></textarea>
+
+                    <button type="submit">
+                        送信
+                    </button>
+                </div>
             </form>
 
         </div>

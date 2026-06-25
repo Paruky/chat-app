@@ -7,7 +7,7 @@ The real reason is also simple: it makes the app feel cooler.
 
 ## Current Version
 
-Beta 1.6
+Beta 1.7
 
 ## Rules
 
