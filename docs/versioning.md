@@ -7,12 +7,13 @@ The real reason is also simple: it makes the app feel cooler.
 
 ## Current Version
 
-Beta 1.7
+Alpha 1.0
 
 ## Rules
 
 - Use a stage name plus major and minor numbers, such as `Beta 1.0`.
 - During the beta period, keep the visible label as `Beta X.Y`.
+- `Alpha 1.0` started when iPhone push notifications worked from another account.
 - Raise the major number when the update feels big.
 - Raise the minor number for smaller updates and bug fixes.
 - There is no strict corporate-style line. Coolness and update feeling matter.

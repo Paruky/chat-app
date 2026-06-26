@@ -46,4 +46,5 @@ create index if not exists push_subscriptions_account_name_idx
 5. Go to Settings and turn notifications on.
 6. Send a message from another account or browser and confirm the iPhone banner appears.
 
-When this succeeds on the real iPhone PWA, bump the visible version to `Alpha 1.0`.
+This succeeded on the real iPhone PWA from another account, so the visible
+version was promoted to `Alpha 1.0`.

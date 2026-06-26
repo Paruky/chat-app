@@ -29,6 +29,6 @@ Before pushing a visible update, check `docs/versioning.md` and update the versi
 ## Current next items
 
 - Keep improving mobile PWA input behavior.
-- Finish iPhone notification verification and then promote the app to Alpha 1.0.
+- Keep iPhone push notifications stable after future messaging changes.
 - Add a visible error message area for failed sends or failed room joins.
 - Add basic automated browser checks once the app has stable test data.

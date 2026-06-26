@@ -21,7 +21,7 @@
 
 ## Notifications
 
-- Set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` in Render.
-- Create the `push_subscriptions` table in Supabase for persistent notifications.
-- Test push notifications on an iPhone Home Screen PWA before calling this Alpha 1.0.
+- Keep iPhone push notifications reliable after future deploys.
+- Keep `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` set in Render.
+- Keep the `push_subscriptions` table available in Supabase.
 - Keep unread badges reliable across reloads.
