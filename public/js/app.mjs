@@ -32,8 +32,10 @@ import {
     setupReplyThreadPanel
 } from "./replyThreads.mjs";
 import {
+    getNotificationEndpoint,
     getNotificationStatus,
     isNotificationSupported,
+    setupForegroundNotificationVibration,
     subscribeToNotifications,
     unsubscribeFromNotifications
 } from "./notifications.mjs";
@@ -101,6 +103,7 @@ const state = {
 
 setAppVersion(APP_VERSION);
 applySettings(state.settings);
+setupForegroundNotificationVibration();
 
 function encodeRoomRoute(room) {
     return encodeURIComponent(room);
@@ -280,6 +283,27 @@ function incrementUnread(room) {
     saveUnreadCounts(state.unreadCounts);
     renderRooms();
     renderDms();
+}
+
+async function syncNotificationPresence() {
+    if (!state.user) return;
+
+    const endpoint = await getNotificationEndpoint().catch(() => "");
+
+    socket.emit("notification presence", {
+        userId: state.user.id,
+        endpoint,
+        room: state.currentRoom,
+        visible: document.visibilityState === "visible"
+    });
+}
+
+function vibrateForForegroundMessage(room) {
+    if (!room || room === state.currentRoom) return;
+    if (!state.settings.pushNotifications) return;
+    if (document.visibilityState !== "visible") return;
+
+    navigator.vibrate?.([80, 45, 80]);
 }
 
 function resetVisibleUnread() {
@@ -462,6 +486,8 @@ function showRoomMenu(panel = "rooms") {
             room: previousRoom
         });
     }
+
+    syncNotificationPresence();
 }
 
 function syncNotificationSetting(subscribed) {
@@ -571,6 +597,7 @@ async function refreshNotificationStatus() {
     }
 
     renderNotificationSettings();
+    syncNotificationPresence();
 }
 
 async function togglePushNotifications() {
@@ -591,6 +618,7 @@ async function togglePushNotifications() {
         }
 
         await refreshNotificationStatus();
+        syncNotificationPresence();
     } catch (error) {
         state.notificationStatus = {
             ...state.notificationStatus,
@@ -635,6 +663,7 @@ function joinRoom(value, options = {}) {
     renderDms();
     showChatView();
     emitJoinRoom(room);
+    syncNotificationPresence();
 }
 
 function joinDm(value, options = {}) {
@@ -668,6 +697,7 @@ function joinDm(value, options = {}) {
     renderDms();
     showChatView();
     emitJoinRoom(nextRoom);
+    syncNotificationPresence();
 }
 
 function deleteDm(dm) {
@@ -729,6 +759,7 @@ async function checkUser() {
     }
 
     syncRoute();
+    syncNotificationPresence();
 }
 
 function isMobileInput() {
@@ -905,6 +936,8 @@ socket.on("connect", () => {
     if (state.currentRoom && state.user) {
         emitJoinRoom(state.currentRoom);
     }
+
+    syncNotificationPresence();
 });
 
 socket.on("disconnect", () => {
@@ -973,6 +1006,7 @@ socket.on("message deleted", (data) => {
 });
 
 socket.on("new message notification", (data) => {
+    vibrateForForegroundMessage(data?.room);
     incrementUnread(data?.room);
 });
 
@@ -992,4 +1026,8 @@ window.addEventListener("hashchange", () => {
     if (state.user) {
         syncRoute();
     }
+});
+
+document.addEventListener("visibilitychange", () => {
+    syncNotificationPresence();
 });

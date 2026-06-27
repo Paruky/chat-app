@@ -30,6 +30,7 @@ function registerSocketHandlers(io, dependencies) {
     const {
         roomsRepository,
         messagesRepository,
+        notificationPresence,
         pushNotifications,
         maxRoomNameLength,
         maxMessageLength
@@ -87,6 +88,15 @@ function registerSocketHandlers(io, dependencies) {
             if (socket.currentRoom === room) {
                 socket.currentRoom = "";
             }
+        });
+
+        socket.on("notification presence", (data = {}) => {
+            notificationPresence?.update(socket.id, {
+                userId: data.userId,
+                endpoint: data.endpoint,
+                room: cleanRoomName(data.room),
+                visible: data.visible === true
+            });
         });
 
         socket.on("delete dm room", async (data = {}) => {
@@ -206,6 +216,10 @@ function registerSocketHandlers(io, dependencies) {
                     message: "メッセージを削除できませんでした"
                 });
             }
+        });
+
+        socket.on("disconnect", () => {
+            notificationPresence?.remove(socket.id);
         });
     });
 }

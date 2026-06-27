@@ -49,6 +49,22 @@ export function isNotificationSupported() {
     return isNotificationApiSupported();
 }
 
+export function setupForegroundNotificationVibration() {
+    if (!("serviceWorker" in navigator)) return;
+
+    navigator.serviceWorker.addEventListener("message", (event) => {
+        if (event.data?.type !== "paruky:push-vibrate") return;
+
+        navigator.vibrate?.(event.data.pattern || [80, 45, 80]);
+    });
+}
+
+export async function getNotificationEndpoint() {
+    const subscription = await getCurrentSubscription();
+
+    return subscription?.endpoint || "";
+}
+
 export async function getNotificationStatus() {
     if (!isNotificationApiSupported()) {
         return {

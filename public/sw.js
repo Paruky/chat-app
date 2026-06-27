@@ -22,6 +22,70 @@ function parsePushData(event) {
     }
 }
 
+function isSameOriginClient(client) {
+    try {
+        return new URL(client.url).origin === self.location.origin;
+    } catch (error) {
+        return false;
+    }
+}
+
+function isVisibleClient(client) {
+    return client.focused || client.visibilityState === "visible";
+}
+
+function normalizeRoute(value) {
+    try {
+        const url = new URL(value || "/", self.location.origin);
+        const hash = decodeURIComponent(url.hash || "");
+
+        if (hash.startsWith("#/dm/")) {
+            return `dm:${hash.slice("#/dm/".length).toLowerCase()}`;
+        }
+
+        if (hash.startsWith("#/rooms/")) {
+            return `room:${hash.slice("#/rooms/".length)}`;
+        }
+
+        return `${url.pathname}${hash}`;
+    } catch (error) {
+        return "/";
+    }
+}
+
+function isClientAtTarget(client, data) {
+    const targetRoute = normalizeRoute(data.url || "/");
+
+    if (!targetRoute || targetRoute === "/") return false;
+
+    return normalizeRoute(client.url) === targetRoute;
+}
+
+function requestClientVibration(clients) {
+    clients.forEach((client) => {
+        client.postMessage({
+            type: "paruky:push-vibrate",
+            pattern: [80, 45, 80]
+        });
+    });
+}
+
+async function shouldShowNotification(data) {
+    const clientList = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true
+    });
+    const visibleClients = clientList
+        .filter(isSameOriginClient)
+        .filter(isVisibleClient);
+
+    if (visibleClients.length === 0) return true;
+    if (visibleClients.some((client) => isClientAtTarget(client, data))) return false;
+
+    requestClientVibration(visibleClients);
+    return false;
+}
+
 self.addEventListener("install", () => {
     self.skipWaiting();
 });
@@ -32,19 +96,25 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("push", (event) => {
     const data = parsePushData(event);
-    const title = data.title || "Paruky Chat";
-    const options = {
-        body: data.body || "新しいメッセージがあります",
-        icon: data.icon || "/icons/icon-192.png",
-        badge: data.badge || "/icons/icon-192.png",
-        tag: data.tag || "paruky-chat",
-        renotify: true,
-        data: {
-            url: data.url || "/"
-        }
-    };
 
-    event.waitUntil(self.registration.showNotification(title, options));
+    event.waitUntil((async () => {
+        if (!(await shouldShowNotification(data))) return;
+
+        const title = data.title || "Paruky Chat";
+        const options = {
+            body: data.body || "新しいメッセージがあります",
+            icon: data.icon || "/icons/icon-192.png",
+            badge: data.badge || "/icons/icon-192.png",
+            tag: data.tag || "paruky-chat",
+            renotify: true,
+            data: {
+                room: data.room || "",
+                url: data.url || "/"
+            }
+        };
+
+        await self.registration.showNotification(title, options);
+    })());
 });
 
 self.addEventListener("notificationclick", (event) => {

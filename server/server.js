@@ -11,6 +11,7 @@ const {
     registerPushRoutes
 } = require("./pushNotifications");
 const { registerSocketHandlers } = require("./socketHandlers");
+const { createNotificationPresence } = require("./notificationPresence");
 
 function createServer() {
     const config = readConfig();
@@ -23,9 +24,13 @@ function createServer() {
         maxHttpBufferSize: Math.max(config.maxMessageLength + 200000, 1000000)
     });
     const supabase = createSupabaseClient(config);
+    const notificationPresence = createNotificationPresence();
     const pushNotifications = createPushNotificationService(
         config,
-        createPushSubscriptionsRepository(supabase)
+        createPushSubscriptionsRepository(supabase),
+        {
+            isRecipientActive: notificationPresence.hasVisibleClient
+        }
     );
 
     app.use(express.json({ limit: "1mb" }));
@@ -35,6 +40,7 @@ function createServer() {
     registerSocketHandlers(io, {
         roomsRepository: createRoomsRepository(supabase),
         messagesRepository: createMessagesRepository(supabase),
+        notificationPresence,
         pushNotifications,
         maxRoomNameLength: config.maxRoomNameLength,
         maxMessageLength: config.maxMessageLength

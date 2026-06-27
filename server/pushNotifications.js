@@ -59,6 +59,15 @@ function parseDmRoom(room) {
     return parts.length >= 3 ? parts.slice(1, 3) : parts;
 }
 
+function getDmPeerForAccount(room, accountName) {
+    const accountKey = getAccountKey(accountName);
+    const users = parseDmRoom(room);
+
+    if (!accountKey || users.length !== 2) return "";
+
+    return users.find((user) => !accountKeysMatch(user, accountKey)) || "";
+}
+
 function summarizeMessage(message) {
     const payload = parseMessagePayload(message.message);
     const sender = safeText(message.name, "ユーザー");
@@ -74,9 +83,19 @@ function summarizeMessage(message) {
     return `${sender}: ${truncate(payload.text || message.message, 120)}`;
 }
 
-function createNotificationUrl(room) {
+function createNotificationTitle(message, accountName) {
+    if (!isDmRoom(message.room)) {
+        return message.room || "Paruky Chat";
+    }
+
+    return safeText(message.name || getDmPeerForAccount(message.room, accountName), "DM");
+}
+
+function createNotificationUrl(room, accountName) {
     if (String(room || "").startsWith("dm:")) {
-        return "/#/dms";
+        const peer = getDmPeerForAccount(room, accountName);
+
+        return peer ? `/#/dm/${encodeURIComponent(peer)}` : "/#/dms";
     }
 
     return `/#/rooms/${encodeURIComponent(room || "")}`;
@@ -95,8 +114,21 @@ function canNotifySubscription(record, message) {
     return recipients.some((accountName) => accountKeysMatch(accountName, record.accountName));
 }
 
-function createPushNotificationService(config, subscriptionsRepository) {
+function createNotificationPayload(message, record) {
+    return JSON.stringify({
+        title: createNotificationTitle(message, record.accountName),
+        body: summarizeMessage(message),
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        tag: `room:${message.room}`,
+        room: message.room || "",
+        url: createNotificationUrl(message.room, record.accountName)
+    });
+}
+
+function createPushNotificationService(config, subscriptionsRepository, options = {}) {
     const enabled = isPushConfigured(config);
+    const isRecipientActive = options.isRecipientActive || (() => false);
 
     if (enabled) {
         webPush.setVapidDetails(
@@ -110,20 +142,15 @@ function createPushNotificationService(config, subscriptionsRepository) {
         if (!enabled) return;
 
         const subscriptions = await subscriptionsRepository.listSubscriptions();
-        const payload = JSON.stringify({
-            title: message.room || "Paruky Chat",
-            body: summarizeMessage(message),
-            icon: "/icons/icon-192.png",
-            badge: "/icons/icon-192.png",
-            tag: `room:${message.room}`,
-            url: createNotificationUrl(message.room)
-        });
-
         await Promise.all(subscriptions
             .filter((record) => canNotifySubscription(record, message))
+            .filter((record) => !isRecipientActive(record, message))
             .map(async (record) => {
                 try {
-                    await webPush.sendNotification(record.subscription, payload);
+                    await webPush.sendNotification(
+                        record.subscription,
+                        createNotificationPayload(message, record)
+                    );
                 } catch (error) {
                     console.warn("[push-notification]", error.message);
 

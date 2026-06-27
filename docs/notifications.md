@@ -48,3 +48,9 @@ create index if not exists push_subscriptions_account_name_idx
 
 This succeeded on the real iPhone PWA from another account, so the visible
 version was promoted to `Alpha 1.0`.
+
+## Foreground behavior
+
+- If the app is open on the same room or DM as the incoming message, the push is suppressed.
+- If the app is open somewhere else and notifications are on, the banner is suppressed and the app requests a short vibration when the browser supports it.
+- If the app is not visibly open, the normal notification banner is shown.
