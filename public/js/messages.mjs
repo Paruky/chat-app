@@ -1,5 +1,6 @@
 import { elements } from "./dom.mjs";
 import { formatMessageTime } from "./formatters.mjs";
+import { MESSAGE_EFFECT_CLASS_NAMES } from "./messageEffects.mjs";
 import { parseMessagePayload } from "./messagePayloads.mjs";
 
 const BOTTOM_THRESHOLD = 120;
@@ -324,6 +325,14 @@ function applyEmojiPresentation(item, payload) {
     return emojiInfo;
 }
 
+function applyEffectPresentation(item, payload) {
+    item.classList.remove("effect-message", ...MESSAGE_EFFECT_CLASS_NAMES);
+
+    if (payload.type !== "effect") return;
+
+    item.classList.add("effect-message", `message-effect-${payload.effect}`);
+}
+
 function enableSwipeReply(item, data, options) {
     const { onSwipeReply } = options;
     let startX = 0;
@@ -472,6 +481,21 @@ function createMessageBody(payload) {
     const text = document.createElement("div");
     text.className = "message-text";
 
+    if (payload.type === "effect") {
+        body.classList.add("effect-message-body");
+        body.dataset.effect = payload.effect;
+        text.classList.add("effect-message-text");
+    }
+
+    if (payload.type === "effect" && payload.effect === "invisible-ink") {
+        text.tabIndex = 0;
+        text.setAttribute("aria-label", payload.text);
+        text.addEventListener("click", (event) => {
+            event.stopPropagation();
+            text.classList.toggle("ink-revealed");
+        });
+    }
+
     if (getEmojiOnlyInfo(payload.text)) {
         text.textContent = payload.text;
     } else {
@@ -499,6 +523,7 @@ function createMessageElement(data, options) {
     const isDeletedMessage = payload.type === "deleted";
 
     applyEmojiPresentation(item, payload);
+    applyEffectPresentation(item, payload);
 
     if (isDeletedMessage) {
         item.classList.add("deleted-message");
@@ -603,6 +628,7 @@ export function updateMessage(data) {
         }
 
         applyEmojiPresentation(item, payload);
+        applyEffectPresentation(item, payload);
         body.replaceWith(createMessageBody(payload));
     }
 }

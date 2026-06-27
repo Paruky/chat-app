@@ -188,9 +188,72 @@
                         rows="1"
                     ></textarea>
 
-                    <button type="submit">
+                    <button
+                        id="send-btn"
+                        type="submit"
+                        aria-haspopup="menu"
+                        aria-expanded="false"
+                    >
                         送信
                     </button>
+                </div>
+
+                <div id="effect-menu" class="effect-menu" role="menu" hidden>
+                    <div class="effect-menu-panel">
+                        <div class="effect-menu-header">
+                            <div>
+                                <div class="effect-menu-kicker">Send with effect</div>
+                                <strong>エフェクトをつけて送信</strong>
+                            </div>
+                            <button id="effect-cancel-btn" type="button" aria-label="閉じる">
+                                ×
+                            </button>
+                        </div>
+
+                        <div class="effect-section">
+                            <div class="effect-section-title">吹き出し</div>
+                            <div class="effect-list">
+                                <button type="button" role="menuitem" data-message-effect="slam">
+                                    <span>スラム</span>
+                                    <small>ドンと強く出る</small>
+                                </button>
+                                <button type="button" role="menuitem" data-message-effect="loud">
+                                    <span>ラウド</span>
+                                    <small>大きく叫ぶ</small>
+                                </button>
+                                <button type="button" role="menuitem" data-message-effect="gentle">
+                                    <span>ジェントル</span>
+                                    <small>ふわっと届く</small>
+                                </button>
+                                <button type="button" role="menuitem" data-message-effect="invisible-ink">
+                                    <span>見えないインク</span>
+                                    <small>触るまで隠す</small>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="effect-section">
+                            <div class="effect-section-title">スクリーン</div>
+                            <div class="effect-list">
+                                <button type="button" role="menuitem" data-message-effect="echo">
+                                    <span>エコー</span>
+                                    <small>言葉を画面に反響</small>
+                                </button>
+                                <button type="button" role="menuitem" data-message-effect="confetti">
+                                    <span>紙吹雪</span>
+                                    <small>カラフルに弾ける</small>
+                                </button>
+                                <button type="button" role="menuitem" data-message-effect="fireworks">
+                                    <span>花火</span>
+                                    <small>光を打ち上げる</small>
+                                </button>
+                                <button type="button" role="menuitem" data-message-effect="spotlight">
+                                    <span>スポットライト</span>
+                                    <small>主役っぽく照らす</small>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </form>
 

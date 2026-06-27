@@ -79,6 +79,10 @@ function getMessagePreview(message) {
         return truncate(payload.text, 120);
     }
 
+    if (payload.type === "paruky:effect:v1" && payload.text) {
+        return truncate(payload.text, 120);
+    }
+
     return truncate(payload.text || message.message, 120);
 }
 

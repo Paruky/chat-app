@@ -1,6 +1,9 @@
+import { normalizeMessageEffect } from "./messageEffects.mjs";
+
 const IMAGE_MESSAGE_TYPE = "paruky:image:v1";
 const REPLY_MESSAGE_TYPE = "paruky:reply:v1";
 const DELETED_MESSAGE_TYPE = "paruky:deleted:v1";
+const EFFECT_MESSAGE_TYPE = "paruky:effect:v1";
 const PREVIEW_LENGTH = 90;
 
 function compactText(value) {
@@ -48,6 +51,10 @@ export function summarizePayload(payload) {
         return trimPreview(payload.text) || "返信";
     }
 
+    if (payload.type === "effect") {
+        return trimPreview(payload.text) || "エフェクト";
+    }
+
     return trimPreview(payload.text) || "メッセージ";
 }
 
@@ -68,6 +75,14 @@ export function createReplyMessagePayload({ text, replyTo }) {
         type: REPLY_MESSAGE_TYPE,
         text: String(text || "").trim(),
         replyTo: normalizeReplyTarget(replyTo)
+    });
+}
+
+export function createEffectMessagePayload({ text, effect }) {
+    return JSON.stringify({
+        type: EFFECT_MESSAGE_TYPE,
+        text: String(text || "").trim(),
+        effect: normalizeMessageEffect(effect) || "slam"
     });
 }
 
@@ -109,6 +124,18 @@ export function parseMessagePayload(message) {
                 type: "deleted",
                 deletedBy: compactText(parsed.deletedBy) || "ユーザー",
                 deletedAt: parsed.deletedAt || ""
+            };
+        }
+
+        if (
+            parsed?.type === EFFECT_MESSAGE_TYPE &&
+            typeof parsed.text === "string" &&
+            parsed.text.trim()
+        ) {
+            return {
+                type: "effect",
+                text: parsed.text,
+                effect: normalizeMessageEffect(parsed.effect) || "slam"
             };
         }
     } catch (error) {

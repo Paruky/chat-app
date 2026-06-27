@@ -7,7 +7,7 @@ The real reason is also simple: it makes the app feel cooler.
 
 ## Current Version
 
-Alpha 1.6
+Alpha 1.7
 
 ## Rules
 
@@ -20,6 +20,7 @@ Alpha 1.6
 - `Alpha 1.4` tuned foreground push notifications by current conversation. Also, made push notifications lead with the sender, then the room, then the message.
 - `Alpha 1.5` fixed image message bubble sizing, cleared notifications when read, and moved the version badge to the top right.
 - `Alpha 1.6` added the in-app version history page with PC editing and mobile read-only viewing.
+- `Alpha 1.7` added send-with-effect messages, including bubble effects and screen effects from a long-press send menu.
 - Raise the major number when the update feels big.
 - Raise the minor number for smaller updates and bug fixes.
 - There is no strict corporate-style line. Coolness and update feeling matter.
@@ -29,5 +30,5 @@ Alpha 1.6
 
 1. Decide whether this push deserves a version bump.
 2. Update `public/js/version.mjs`.
-3. Keep the small bottom-left display working.
+3. Keep the small top-right display working.
 4. Mention the version in the commit message when it helps.

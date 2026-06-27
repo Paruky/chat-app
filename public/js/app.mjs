@@ -23,6 +23,12 @@ import {
 } from "./messages.mjs";
 import { setupMessageActions } from "./messageActions.mjs";
 import {
+    isScreenMessageEffect,
+    playScreenEffect,
+    setupEffectSendMenu
+} from "./messageEffects.mjs";
+import {
+    createEffectMessagePayload,
     createReplyMessagePayload,
     createReplyTarget,
     parseMessagePayload
@@ -344,6 +350,10 @@ function setAttachmentMenuOpen(isOpen) {
     elements.attachmentButton.setAttribute("aria-expanded", String(isOpen));
 }
 
+function getComposerText() {
+    return cleanText(elements.input.value, LIMITS.message);
+}
+
 function renderReplyComposer() {
     if (!state.replyTarget) {
         elements.replyComposer.hidden = true;
@@ -405,6 +415,24 @@ function sendCurrentRoomMessage(message) {
     return true;
 }
 
+function sendTextWithEffect(effect) {
+    const text = getComposerText();
+
+    if (!text) return;
+
+    const sent = sendCurrentRoomMessage(createEffectMessagePayload({
+        text,
+        effect
+    }));
+
+    if (sent) {
+        typing.resetInput();
+        setAttachmentMenuOpen(false);
+        effectSendMenu.close();
+        clearReplyTarget();
+    }
+}
+
 async function sendPhoto(file) {
     if (state.isSendingImage) return;
 
@@ -416,6 +444,7 @@ async function sendPhoto(file) {
         const payload = await prepareImageAttachment(file, LIMITS.imageMessage);
         sendCurrentRoomMessage(payload);
         setAttachmentMenuOpen(false);
+        effectSendMenu.close();
     } catch (error) {
         window.alert(error.message || "写真を送信できませんでした");
     } finally {
@@ -488,6 +517,7 @@ function showRoomMenu(panel = "rooms") {
 
     typing.stopTyping();
     setAttachmentMenuOpen(false);
+    effectSendMenu.close();
     clearReplyTarget();
     state.currentMessages = [];
     state.currentRoom = "";
@@ -678,6 +708,8 @@ function joinRoom(value, options = {}) {
     }
 
     typing.stopTyping();
+    setAttachmentMenuOpen(false);
+    effectSendMenu.close();
 
     state.currentRoom = room;
     elements.roomInput.value = room;
@@ -709,6 +741,8 @@ function joinDm(value, options = {}) {
     }
 
     typing.stopTyping();
+    setAttachmentMenuOpen(false);
+    effectSendMenu.close();
 
     showDmRoom(nextRoom);
     rememberDmDisplayName(nextRoom, targetAccount);
@@ -817,6 +851,18 @@ const messageActions = setupMessageActions({
     onReply: startReply
 });
 
+const effectSendMenu = setupEffectSendMenu({
+    elements,
+    canOpen: () => Boolean(state.currentRoom && state.user),
+    getText: getComposerText,
+    onSelectEffect: sendTextWithEffect,
+    onOpenChange: (isOpen) => {
+        if (isOpen) {
+            setAttachmentMenuOpen(false);
+        }
+    }
+});
+
 const replyThreadPanel = setupReplyThreadPanel({
     onScrollToMessage: (messageId) => {
         const moved = scrollToMessage(messageId);
@@ -902,6 +948,7 @@ elements.attachmentButton.addEventListener("click", (event) => {
 
     if (!state.currentRoom) return;
 
+    effectSendMenu.close();
     setAttachmentMenuOpen(elements.attachmentMenu.hidden);
 });
 
@@ -952,7 +999,7 @@ elements.input.addEventListener("keydown", (event) => {
 elements.form.addEventListener("submit", (event) => {
     event.preventDefault();
 
-    const text = cleanText(elements.input.value, LIMITS.message);
+    const text = getComposerText();
 
     if (!text) return;
 
@@ -967,6 +1014,7 @@ elements.form.addEventListener("submit", (event) => {
     if (sent) {
         typing.resetInput();
         setAttachmentMenuOpen(false);
+        effectSendMenu.close();
         clearReplyTarget();
     }
 });
@@ -1008,6 +1056,8 @@ socket.on("room list", (rooms) => {
 socket.on("chat message", (data) => {
     if (data?.room && data.room !== state.currentRoom) return;
 
+    const payload = parseMessagePayload(data?.message);
+
     state.currentMessages.push(data);
     appendMessage(data, {
         currentUserId: state.user?.id,
@@ -1018,6 +1068,10 @@ socket.on("chat message", (data) => {
         onSwipeReply: startReply,
         onUnread: incrementVisibleUnread
     });
+
+    if (payload.type === "effect" && isScreenMessageEffect(payload.effect)) {
+        playScreenEffect(payload.effect, payload.text);
+    }
 });
 
 socket.on("message edited", (data) => {
