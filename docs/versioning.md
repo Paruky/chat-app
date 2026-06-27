@@ -7,7 +7,7 @@ The real reason is also simple: it makes the app feel cooler.
 
 ## Current Version
 
-Alpha 1.5
+Alpha 1.6
 
 ## Rules
 
@@ -19,6 +19,7 @@ Alpha 1.5
 - `Alpha 1.3` added soft message deletion from the message action menu.
 - `Alpha 1.4` tuned foreground push notifications by current conversation. Also, made push notifications lead with the sender, then the room, then the message.
 - `Alpha 1.5` fixed image message bubble sizing, cleared notifications when read, and moved the version badge to the top right.
+- `Alpha 1.6` added the in-app version history page with PC editing and mobile read-only viewing.
 - Raise the major number when the update feels big.
 - Raise the minor number for smaller updates and bug fixes.
 - There is no strict corporate-style line. Coolness and update feeling matter.
