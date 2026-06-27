@@ -11,6 +11,13 @@ const SWIPE_REPLY_MAX = 76;
 const SWIPE_VERTICAL_CANCEL = 20;
 const URL_PATTERN = /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
 const TRAILING_URL_PUNCTUATION = /[.,!?;:、。！？）)\]}]/;
+const EMOJI_MARKER_PATTERN = /[\p{Extended_Pictographic}\p{Emoji_Presentation}\p{Regional_Indicator}]/u;
+const EMOJI_CLASS_PREFIX = "emoji-count-";
+const EMOJI_COUNT_CLASSES = [
+    "emoji-count-1",
+    "emoji-count-2",
+    "emoji-count-3"
+];
 
 export function isNearBottom() {
     return (
@@ -244,6 +251,47 @@ function appendLinkedText(container, value) {
     }
 }
 
+function getGraphemeParts(value) {
+    const text = String(value || "").trim();
+
+    if (!text) return [];
+
+    if ("Segmenter" in Intl) {
+        const segmenter = new Intl.Segmenter(undefined, {
+            granularity: "grapheme"
+        });
+
+        return [...segmenter.segment(text)].map((part) => part.segment);
+    }
+
+    return Array.from(text);
+}
+
+function getEmojiOnlyInfo(value) {
+    const parts = getGraphemeParts(value).filter((part) => !/^\s+$/u.test(part));
+
+    if (parts.length < 1 || parts.length > 3) return null;
+    if (!parts.every((part) => EMOJI_MARKER_PATTERN.test(part))) return null;
+
+    return {
+        count: parts.length
+    };
+}
+
+function applyEmojiPresentation(item, payload) {
+    item.classList.remove("emoji-message", ...EMOJI_COUNT_CLASSES);
+
+    if (payload.type !== "text") return null;
+
+    const emojiInfo = getEmojiOnlyInfo(payload.text);
+
+    if (!emojiInfo) return null;
+
+    item.classList.add("emoji-message", `${EMOJI_CLASS_PREFIX}${emojiInfo.count}`);
+
+    return emojiInfo;
+}
+
 function enableSwipeReply(item, data, options) {
     const { onSwipeReply } = options;
     let startX = 0;
@@ -382,7 +430,13 @@ function createMessageBody(payload) {
 
     const text = document.createElement("div");
     text.className = "message-text";
-    appendLinkedText(text, payload.text);
+
+    if (getEmojiOnlyInfo(payload.text)) {
+        text.textContent = payload.text;
+    } else {
+        appendLinkedText(text, payload.text);
+    }
+
     body.appendChild(text);
 
     return body;
@@ -401,6 +455,8 @@ function createMessageElement(data, options) {
     item.messageData = data;
     const payload = parseMessagePayload(data.message);
     const isOwnMessage = data.userId && data.userId === currentUserId;
+
+    applyEmojiPresentation(item, payload);
 
     if (data.id) {
         item.dataset.messageId = data.id;
@@ -484,7 +540,10 @@ export function updateMessage(data) {
             ...item.messageData,
             ...data
         };
-        body.replaceWith(createMessageBody(parseMessagePayload(item.messageData.message)));
+        const payload = parseMessagePayload(item.messageData.message);
+
+        applyEmojiPresentation(item, payload);
+        body.replaceWith(createMessageBody(payload));
     }
 }
 

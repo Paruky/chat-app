@@ -213,6 +213,47 @@ body {
     user-select: none;
 }
 
+.emoji-message,
+.emoji-message.my-message {
+    padding: 4px 2px;
+    background: transparent;
+    color: var(--text-main);
+}
+
+.emoji-message .message-header {
+    align-items: center;
+}
+
+.emoji-message .message-top {
+    margin-bottom: 2px;
+}
+
+.emoji-message .message-top strong {
+    color: var(--text-main);
+}
+
+.emoji-message .message-time,
+.emoji-message.my-message .message-time {
+    color: var(--text-sub);
+}
+
+.emoji-message .message-text {
+    line-height: 1;
+    word-break: normal;
+}
+
+.emoji-count-1 .message-text {
+    font-size: 64px;
+}
+
+.emoji-count-2 .message-text {
+    font-size: 52px;
+}
+
+.emoji-count-3 .message-text {
+    font-size: 44px;
+}
+
 @keyframes messageIn {
     from {
         opacity: 0;
