@@ -18,6 +18,14 @@ function isDmRoom(room) {
     return String(room || "").startsWith("dm:");
 }
 
+function createDeletedMessagePayload(deletedBy) {
+    return JSON.stringify({
+        type: "paruky:deleted:v1",
+        deletedBy,
+        deletedAt: new Date().toISOString()
+    });
+}
+
 function registerSocketHandlers(io, dependencies) {
     const {
         roomsRepository,
@@ -171,6 +179,31 @@ function registerSocketHandlers(io, dependencies) {
                 logSocketError("edit-message", error);
                 socket.emit("server error", {
                     message: "メッセージを編集できませんでした"
+                });
+            }
+        });
+
+        socket.on("delete message", async (data = {}) => {
+            const id = cleanMessageId(data.id);
+            const room = cleanRoomName(data.room);
+            const userId = String(data.userId || "");
+            const deletedBy = cleanRoomName(data.name) || "ユーザー";
+
+            if (!id || !room || !userId) return;
+
+            try {
+                const deletedMessage = await messagesRepository.deleteMessage({
+                    id,
+                    room,
+                    userId,
+                    message: createDeletedMessagePayload(deletedBy)
+                });
+
+                io.to(room).emit("message deleted", deletedMessage);
+            } catch (error) {
+                logSocketError("delete-message", error);
+                socket.emit("server error", {
+                    message: "メッセージを削除できませんでした"
                 });
             }
         });

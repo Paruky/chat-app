@@ -411,6 +411,31 @@ function emitEditMessage(message, nextValue) {
     });
 }
 
+function emitDeleteMessage(message) {
+    const profile = getUserProfile();
+
+    if (
+        !message?.id ||
+        !state.currentRoom ||
+        !state.user ||
+        !profile ||
+        message.userId !== state.user.id
+    ) {
+        return;
+    }
+
+    const confirmed = window.confirm("このメッセージを削除しますか？");
+
+    if (!confirmed) return;
+
+    socket.emit("delete message", {
+        id: message.id,
+        room: state.currentRoom,
+        userId: state.user.id,
+        name: profile.name
+    });
+}
+
 function showRoomMenu(panel = "rooms") {
     const previousRoom = state.currentRoom;
 
@@ -729,6 +754,7 @@ const typing = setupTypingInput({
 });
 
 const messageActions = setupMessageActions({
+    onDelete: emitDeleteMessage,
     onEdit: emitEditMessage,
     onReply: startReply
 });
@@ -923,6 +949,18 @@ socket.on("chat message", (data) => {
 });
 
 socket.on("message edited", (data) => {
+    state.currentMessages = state.currentMessages.map((message) =>
+        String(message.id) === String(data?.id)
+            ? {
+                ...message,
+                ...data
+            }
+            : message
+    );
+    updateMessage(data);
+});
+
+socket.on("message deleted", (data) => {
     state.currentMessages = state.currentMessages.map((message) =>
         String(message.id) === String(data?.id)
             ? {

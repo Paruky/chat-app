@@ -7,7 +7,7 @@ The real reason is also simple: it makes the app feel cooler.
 
 ## Current Version
 
-Alpha 1.2
+Alpha 1.3
 
 ## Rules
 
@@ -16,6 +16,7 @@ Alpha 1.2
 - `Alpha 1.0` started when iPhone push notifications worked from another account.
 - `Alpha 1.1` added clickable hyperlinks in messages.
 - `Alpha 1.2` added large bubble-free emoji-only messages.
+- `Alpha 1.3` added soft message deletion from the message action menu.
 - Raise the major number when the update feels big.
 - Raise the minor number for smaller updates and bug fixes.
 - There is no strict corporate-style line. Coolness and update feeling matter.

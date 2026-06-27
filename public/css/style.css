@@ -189,6 +189,43 @@ body {
     outline-offset: 3px;
 }
 
+.deleted-message,
+.deleted-message.my-message {
+    align-self: center;
+    max-width: min(88%, 420px);
+    margin-left: 0;
+    padding: 8px 12px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--text-sub);
+}
+
+.deleted-message .message-header {
+    align-items: center;
+    gap: 8px;
+}
+
+.deleted-message .avatar {
+    display: none;
+}
+
+.deleted-message .message-content {
+    align-items: center;
+}
+
+.deleted-message .message-top {
+    margin-bottom: 2px;
+}
+
+.deleted-message .message-top strong {
+    display: none;
+}
+
+.deleted-message .message-time,
+.deleted-message.my-message .message-time {
+    color: var(--text-sub);
+}
+
 .message {
     touch-action: pan-y;
 }
@@ -841,6 +878,21 @@ textarea {
 
 .message-action-item:hover {
     background: rgba(255, 255, 255, 0.08);
+}
+
+.message-action-delete {
+    color: #ff8a80;
+}
+
+.message-action-delete:hover {
+    background: rgba(255, 69, 58, 0.14);
+}
+
+.deleted-message-text {
+    color: var(--text-sub);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.35;
 }
 
 .message-edit-panel {

@@ -43,19 +43,21 @@ function positionMenu(menu, anchor, actionCount) {
 }
 
 function renderMenu(menu, selectedMessage, callbacks) {
-    const { onEditClick, onReplyClick } = callbacks;
+    const { onDeleteClick, onEditClick, onReplyClick } = callbacks;
     menu.replaceChildren();
 
     const list = document.createElement("div");
     list.className = "message-action-list";
 
-    const replyButton = document.createElement("button");
-    replyButton.type = "button";
-    replyButton.className = "message-action-item";
-    replyButton.textContent = "返信";
-    replyButton.addEventListener("click", () => onReplyClick(selectedMessage.message));
+    if (selectedMessage.canReply) {
+        const replyButton = document.createElement("button");
+        replyButton.type = "button";
+        replyButton.className = "message-action-item";
+        replyButton.textContent = "返信";
+        replyButton.addEventListener("click", () => onReplyClick(selectedMessage.message));
 
-    list.appendChild(replyButton);
+        list.appendChild(replyButton);
+    }
 
     if (selectedMessage.canEdit) {
         const editButton = document.createElement("button");
@@ -65,6 +67,16 @@ function renderMenu(menu, selectedMessage, callbacks) {
         editButton.addEventListener("click", () => onEditClick(selectedMessage.message));
 
         list.appendChild(editButton);
+    }
+
+    if (selectedMessage.canDelete) {
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "message-action-item message-action-delete";
+        deleteButton.textContent = "削除";
+        deleteButton.addEventListener("click", () => onDeleteClick(selectedMessage.message));
+
+        list.appendChild(deleteButton);
     }
 
     menu.appendChild(list);
@@ -114,7 +126,7 @@ function renderEditor(editor, message, callbacks) {
     });
 }
 
-export function setupMessageActions({ onEdit, onReply }) {
+export function setupMessageActions({ onDelete, onEdit, onReply }) {
     const ui = createActionLayer();
     let selectedMessage = null;
 
@@ -142,10 +154,17 @@ export function setupMessageActions({ onEdit, onReply }) {
         close();
     }
 
-    function open({ message, anchor, source, canEdit = false }) {
+    function deleteMessage(message) {
+        onDelete(message);
+        close();
+    }
+
+    function open({ message, anchor, source, canDelete = false, canEdit = false, canReply = true }) {
         selectedMessage = {
             message,
-            canEdit
+            canDelete,
+            canEdit,
+            canReply
         };
         ui.layer.hidden = false;
         ui.layer.classList.remove("editing", "mobile");
@@ -155,6 +174,7 @@ export function setupMessageActions({ onEdit, onReply }) {
         }
 
         const actionCount = renderMenu(ui.menu, selectedMessage, {
+            onDeleteClick: deleteMessage,
             onEditClick: openEditor,
             onReplyClick: startReply
         });

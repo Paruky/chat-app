@@ -50,6 +50,10 @@ function findMessageElement(messageId) {
         .find((message) => message.dataset.messageId === String(messageId));
 }
 
+function isDeletedMessageData(message) {
+    return parseMessagePayload(message?.message).type === "deleted";
+}
+
 export function scrollToMessage(messageId) {
     const item = findMessageElement(messageId);
 
@@ -85,12 +89,31 @@ function enableMessageActions(item, data, onOpenMessageActions, actionState) {
         }, 450);
     }
 
+    function getCurrentActionState() {
+        const isDeleted = isDeletedMessageData(item.messageData);
+
+        return {
+            canDelete: actionState.canDelete && !isDeleted,
+            canEdit: actionState.canEdit && !isDeleted,
+            canReply: actionState.canReply && !isDeleted
+        };
+    }
+
     item.addEventListener("contextmenu", (event) => {
         event.preventDefault();
+
+        const currentActionState = getCurrentActionState();
+
+        if (!currentActionState.canDelete && !currentActionState.canEdit && !currentActionState.canReply) {
+            return;
+        }
+
         suppressReplyTap();
         onOpenMessageActions({
             message: item.messageData,
-            canEdit: actionState.canEdit,
+            canDelete: currentActionState.canDelete,
+            canEdit: currentActionState.canEdit,
+            canReply: currentActionState.canReply,
             source: "contextmenu",
             anchor: {
                 x: event.clientX,
@@ -111,10 +134,18 @@ function enableMessageActions(item, data, onOpenMessageActions, actionState) {
         clearLongPress();
 
         longPressTimer = setTimeout(() => {
+            const currentActionState = getCurrentActionState();
+
+            if (!currentActionState.canDelete && !currentActionState.canEdit && !currentActionState.canReply) {
+                return;
+            }
+
             suppressReplyTap();
             onOpenMessageActions({
                 message: item.messageData,
-                canEdit: actionState.canEdit,
+                canDelete: currentActionState.canDelete,
+                canEdit: currentActionState.canEdit,
+                canReply: currentActionState.canReply,
                 source: "longpress",
                 anchor: {
                     x: startX,
@@ -148,6 +179,7 @@ function enableReplyNavigation(item, data, callbacks) {
 
         if (
             item.dataset.ignoreReplyTap ||
+            isDeletedMessageData(item.messageData) ||
             (target instanceof Element && target.closest("button, a"))
         ) {
             return;
@@ -314,6 +346,7 @@ function enableSwipeReply(item, data, options) {
 
     item.addEventListener("pointerdown", (event) => {
         if (event.pointerType === "mouse") return;
+        if (isDeletedMessageData(item.messageData)) return;
 
         startX = event.clientX;
         startY = event.clientY;
@@ -413,6 +446,14 @@ function createMessageBody(payload) {
     const body = document.createElement("div");
     body.className = "message-body";
 
+    if (payload.type === "deleted") {
+        const deleted = document.createElement("div");
+        deleted.className = "deleted-message-text";
+        deleted.textContent = `${payload.deletedBy}が削除しました`;
+        body.appendChild(deleted);
+        return body;
+    }
+
     if (payload.type === "image") {
         const figure = document.createElement("figure");
         figure.className = "message-image-wrap";
@@ -455,8 +496,13 @@ function createMessageElement(data, options) {
     item.messageData = data;
     const payload = parseMessagePayload(data.message);
     const isOwnMessage = data.userId && data.userId === currentUserId;
+    const isDeletedMessage = payload.type === "deleted";
 
     applyEmojiPresentation(item, payload);
+
+    if (isDeletedMessage) {
+        item.classList.add("deleted-message");
+    }
 
     if (data.id) {
         item.dataset.messageId = data.id;
@@ -476,11 +522,13 @@ function createMessageElement(data, options) {
 
     if (onOpenMessageActions) {
         enableMessageActions(item, data, onOpenMessageActions, {
-            canEdit: isOwnMessage && payload.type === "text"
+            canDelete: isOwnMessage && !isDeletedMessage,
+            canEdit: isOwnMessage && payload.type === "text",
+            canReply: !isDeletedMessage
         });
     }
 
-    if (onSwipeReply) {
+    if (onSwipeReply && !isDeletedMessage) {
         enableSwipeReply(item, data, {
             onSwipeReply
         });
@@ -541,6 +589,13 @@ export function updateMessage(data) {
             ...data
         };
         const payload = parseMessagePayload(item.messageData.message);
+
+        item.classList.toggle("deleted-message", payload.type === "deleted");
+        item.classList.toggle("reply-message", payload.type === "reply");
+
+        if (payload.type !== "reply") {
+            item.querySelectorAll(".reply-reference").forEach((reference) => reference.remove());
+        }
 
         applyEmojiPresentation(item, payload);
         body.replaceWith(createMessageBody(payload));

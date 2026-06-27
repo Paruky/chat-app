@@ -38,10 +38,26 @@ function createMessagesRepository(supabase) {
         return data;
     }
 
+    async function deleteMessage({ id, room, userId, message }) {
+        const { data, error } = await supabase
+            .from("messages")
+            .update({ message })
+            .eq("id", id)
+            .eq("room", room)
+            .eq("userId", userId)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
     return {
         listMessages,
         createMessage,
-        updateMessage
+        updateMessage,
+        deleteMessage
     };
 }
 

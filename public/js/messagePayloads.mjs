@@ -1,5 +1,6 @@
 const IMAGE_MESSAGE_TYPE = "paruky:image:v1";
 const REPLY_MESSAGE_TYPE = "paruky:reply:v1";
+const DELETED_MESSAGE_TYPE = "paruky:deleted:v1";
 const PREVIEW_LENGTH = 90;
 
 function compactText(value) {
@@ -37,6 +38,10 @@ export function createImageMessagePayload(image) {
 export function summarizePayload(payload) {
     if (payload.type === "image") {
         return "写真";
+    }
+
+    if (payload.type === "deleted") {
+        return "削除されたメッセージ";
     }
 
     if (payload.type === "reply") {
@@ -96,6 +101,14 @@ export function parseMessagePayload(message) {
                 type: "reply",
                 text: parsed.text,
                 replyTo: normalizeReplyTarget(parsed.replyTo)
+            };
+        }
+
+        if (parsed?.type === DELETED_MESSAGE_TYPE) {
+            return {
+                type: "deleted",
+                deletedBy: compactText(parsed.deletedBy) || "ユーザー",
+                deletedAt: parsed.deletedAt || ""
             };
         }
     } catch (error) {
