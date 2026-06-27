@@ -504,6 +504,10 @@ function createMessageElement(data, options) {
         item.classList.add("deleted-message");
     }
 
+    if (payload.type === "image") {
+        item.classList.add("image-message");
+    }
+
     if (data.id) {
         item.dataset.messageId = data.id;
     }
@@ -591,6 +595,7 @@ export function updateMessage(data) {
         const payload = parseMessagePayload(item.messageData.message);
 
         item.classList.toggle("deleted-message", payload.type === "deleted");
+        item.classList.toggle("image-message", payload.type === "image");
         item.classList.toggle("reply-message", payload.type === "reply");
 
         if (payload.type !== "reply") {

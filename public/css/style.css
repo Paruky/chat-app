@@ -806,6 +806,44 @@ textarea {
     object-fit: contain;
     background: rgba(0, 0, 0, 0.12);
 }
+
+.image-message {
+    max-width: min(92%, 480px);
+    padding: 10px;
+}
+
+.image-message .message-header {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 10px;
+}
+
+.image-message .message-content {
+    display: contents;
+}
+
+.image-message .message-top {
+    grid-column: 2;
+    min-width: 0;
+}
+
+.image-message .message-body {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+    max-width: 100%;
+}
+
+.image-message .message-image-wrap {
+    width: min(68vw, 420px);
+    max-width: 100%;
+}
+
+.image-message .message-image {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+}
+
 .message-header {
     display: flex;
     gap: 10px;
@@ -824,6 +862,7 @@ textarea {
 .message-content {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .message-action-layer {
