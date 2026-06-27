@@ -54,3 +54,8 @@ version was promoted to `Alpha 1.0`.
 - If the app is open on the same room or DM as the incoming message, the push is suppressed.
 - If the app is open somewhere else and notifications are on, the banner is suppressed and the app requests a short vibration when the browser supports it.
 - If the app is not visibly open, the normal notification banner is shown.
+
+## Display format
+
+Notifications put the sender in the title, then the conversation label and
+message preview in the body.

@@ -7,7 +7,7 @@ The real reason is also simple: it makes the app feel cooler.
 
 ## Current Version
 
-Alpha 1.4
+Alpha 1.5
 
 ## Rules
 
@@ -18,6 +18,7 @@ Alpha 1.4
 - `Alpha 1.2` added large bubble-free emoji-only messages.
 - `Alpha 1.3` added soft message deletion from the message action menu.
 - `Alpha 1.4` tuned foreground push notifications by current conversation.
+- `Alpha 1.5` made push notifications lead with the sender, then the room, then the message.
 - Raise the major number when the update feels big.
 - Raise the minor number for smaller updates and bug fixes.
 - There is no strict corporate-style line. Coolness and update feeling matter.

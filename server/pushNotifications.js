@@ -68,27 +68,32 @@ function getDmPeerForAccount(room, accountName) {
     return users.find((user) => !accountKeysMatch(user, accountKey)) || "";
 }
 
-function summarizeMessage(message) {
+function getMessagePreview(message) {
     const payload = parseMessagePayload(message.message);
-    const sender = safeText(message.name, "ユーザー");
 
     if (payload.type === "paruky:image:v1") {
-        return `${sender} が写真を送信しました`;
+        return "写真を送信しました";
     }
 
     if (payload.type === "paruky:reply:v1" && payload.text) {
-        return `${sender}: ${truncate(payload.text, 120)}`;
+        return truncate(payload.text, 120);
     }
 
-    return `${sender}: ${truncate(payload.text || message.message, 120)}`;
+    return truncate(payload.text || message.message, 120);
 }
 
-function createNotificationTitle(message, accountName) {
+function createNotificationTitle(message) {
+    return safeText(message.name, "ユーザー");
+}
+
+function createConversationLabel(message, accountName) {
     if (!isDmRoom(message.room)) {
-        return message.room || "Paruky Chat";
+        return safeText(message.room, "Paruky Chat");
     }
 
-    return safeText(message.name || getDmPeerForAccount(message.room, accountName), "DM");
+    const peer = safeText(message.name || getDmPeerForAccount(message.room, accountName));
+
+    return peer ? `DM @${peer.replace(/^@+/, "")}` : "DM";
 }
 
 function createNotificationUrl(room, accountName) {
@@ -116,8 +121,11 @@ function canNotifySubscription(record, message) {
 
 function createNotificationPayload(message, record) {
     return JSON.stringify({
-        title: createNotificationTitle(message, record.accountName),
-        body: summarizeMessage(message),
+        title: createNotificationTitle(message),
+        body: [
+            createConversationLabel(message, record.accountName),
+            getMessagePreview(message)
+        ].filter(Boolean).join("\n"),
         icon: "/icons/icon-192.png",
         badge: "/icons/icon-192.png",
         tag: `room:${message.room}`,
