@@ -39,8 +39,32 @@ function createVersionHistoryRepository(supabase) {
 
         hasWarnedAboutSupabase = true;
         console.warn(
-            `[version-history] Supabase table unavailable, using in-memory fallback: ${error.message}`
+            `[version-history] Supabase table unavailable or blocked by permissions, using in-memory fallback: ${error.message}`
         );
+    }
+
+    async function flushMemoryEntriesToSupabase() {
+        if (memoryEntries.size === 0) return [];
+
+        const entries = [...memoryEntries.values()];
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .insert(entries.map((entry) => ({
+                version: entry.version,
+                notes: entry.notes
+            })))
+            .select("id,version,notes,created_at,updated_at");
+
+        if (error) {
+            warnSupabaseFallback(error);
+            return entries;
+        }
+
+        memoryEntries.clear();
+
+        return (data || [])
+            .map(normalizeEntry)
+            .filter(Boolean);
     }
 
     async function listEntries() {
@@ -54,9 +78,12 @@ function createVersionHistoryRepository(supabase) {
             return sortEntries([...memoryEntries.values()]);
         }
 
-        return (data || [])
+        const persistedMemoryEntries = await flushMemoryEntriesToSupabase();
+        const entries = (data || [])
             .map(normalizeEntry)
             .filter(Boolean);
+
+        return sortEntries([...persistedMemoryEntries, ...entries]);
     }
 
     async function createEntry(entry) {
