@@ -70,6 +70,17 @@ function requestClientVibration(clients) {
     });
 }
 
+async function closeNotificationsByTag(tag) {
+    if (!tag || !self.registration.getNotifications) return;
+
+    try {
+        const notifications = await self.registration.getNotifications({ tag });
+        notifications.forEach((notification) => notification.close());
+    } catch (error) {
+        console.warn("close notifications failed", error);
+    }
+}
+
 async function shouldShowNotification(data) {
     const clientList = await self.clients.matchAll({
         type: "window",
@@ -117,12 +128,21 @@ self.addEventListener("push", (event) => {
     })());
 });
 
+self.addEventListener("message", (event) => {
+    if (event.data?.type !== "paruky:close-notifications") return;
+
+    const closeTask = closeNotificationsByTag(event.data.tag);
+    event.waitUntil?.(closeTask);
+});
+
 self.addEventListener("notificationclick", (event) => {
     event.notification.close();
 
     const targetUrl = new URL(event.notification.data?.url || "/", self.location.origin).href;
 
     event.waitUntil((async () => {
+        await closeNotificationsByTag(event.notification.tag);
+
         const clientList = await self.clients.matchAll({
             type: "window",
             includeUncontrolled: true

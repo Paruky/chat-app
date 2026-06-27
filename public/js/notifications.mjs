@@ -45,6 +45,17 @@ function getPermissionState() {
     return Notification.permission;
 }
 
+function createRoomNotificationTag(room) {
+    return `room:${String(room || "")}`;
+}
+
+async function closeNotificationsOnRegistration(registration, tag) {
+    if (!registration?.getNotifications) return;
+
+    const notifications = await registration.getNotifications({ tag });
+    notifications.forEach((notification) => notification.close());
+}
+
 export function isNotificationSupported() {
     return isNotificationApiSupported();
 }
@@ -63,6 +74,21 @@ export async function getNotificationEndpoint() {
     const subscription = await getCurrentSubscription();
 
     return subscription?.endpoint || "";
+}
+
+export async function closeRoomNotifications(room) {
+    if (!room || !("serviceWorker" in navigator)) return;
+
+    const registration = await navigator.serviceWorker.ready;
+    const tag = createRoomNotificationTag(room);
+
+    await closeNotificationsOnRegistration(registration, tag).catch((error) => {
+        console.warn("close notifications on page failed", error);
+    });
+    registration.active?.postMessage({
+        type: "paruky:close-notifications",
+        tag
+    });
 }
 
 export async function getNotificationStatus() {

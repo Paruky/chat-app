@@ -32,6 +32,7 @@ import {
     setupReplyThreadPanel
 } from "./replyThreads.mjs";
 import {
+    closeRoomNotifications,
     getNotificationEndpoint,
     getNotificationStatus,
     isNotificationSupported,
@@ -265,6 +266,10 @@ function showDmRoom(room) {
 
 function markRoomAsRead(room) {
     if (!room) return;
+
+    closeRoomNotifications(room).catch((error) => {
+        console.warn("close room notifications failed", error);
+    });
 
     state.unreadCounts[room] = 0;
     saveUnreadCounts(state.unreadCounts);
