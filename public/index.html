@@ -90,7 +90,48 @@
                             <span class="switch-track"></span>
                         </span>
                     </label>
+
+                    <div class="setting-card setting-card-horizontal">
+                        <span>
+                            <span class="setting-title">バージョン履歴</span>
+                            <span class="setting-note">アップデートの記録</span>
+                        </span>
+                        <button id="version-history-btn" type="button" class="setting-action-btn">
+                            開く
+                        </button>
+                    </div>
                 </div>
+            </section>
+
+            <section id="version-history-panel" class="menu-panel" hidden>
+                <div class="version-history-header">
+                    <div>
+                        <div class="menu-section-title">アップデートのお知らせ</div>
+                        <h2>バージョン履歴</h2>
+                    </div>
+                    <button id="version-history-back-btn" type="button" class="setting-action-btn">
+                        設定へ
+                    </button>
+                </div>
+
+                <form id="version-history-form" class="version-history-form">
+                    <input id="version-history-version" placeholder="Alpha 1.5">
+                    <textarea
+                        id="version-history-notes"
+                        placeholder="変更内容"
+                        rows="4"
+                    ></textarea>
+                    <div class="version-history-form-actions">
+                        <button id="version-history-cancel-btn" type="button">
+                            キャンセル
+                        </button>
+                        <button id="version-history-submit-btn" type="submit">
+                            追加
+                        </button>
+                    </div>
+                </form>
+
+                <div id="version-history-list" class="version-history-list"></div>
             </section>
         </div>
     </section>

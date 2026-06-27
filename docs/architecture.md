@@ -7,6 +7,7 @@
 - `server/supabase.js` creates the Supabase client.
 - `server/repositories/` keeps database access in one place.
 - `server/pushNotifications.js` owns Web Push setup, API routes, and notification sending.
+- `server/versionHistoryRoutes.js` owns the version history API.
 - `server/socketHandlers.js` owns realtime chat events.
 - `public/js/app.mjs` wires the browser app together.
 - `public/js/messages.mjs` renders chat messages.
@@ -14,6 +15,7 @@
 - `public/js/notifications.mjs` owns browser notification subscription and unsubscribe behavior.
 - `public/js/rooms.mjs` renders the room list and unread badges.
 - `public/js/typing.mjs` owns typing indicators.
+- `public/js/versionHistory.mjs` owns the version history page.
 - `public/js/storage.mjs` owns localStorage access.
 - `public/js/version.mjs` owns the visible app version.
 

@@ -1356,6 +1356,98 @@ textarea {
     opacity: 0.58;
 }
 
+.version-history-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.version-history-header h2 {
+    margin: 4px 0 0;
+    font-size: 28px;
+    line-height: 1.1;
+}
+
+.version-history-form {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+}
+
+.version-history-form input,
+.version-history-form textarea {
+    width: 100%;
+}
+
+.version-history-form textarea {
+    resize: vertical;
+    min-height: 112px;
+}
+
+.version-history-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.version-history-list {
+    display: grid;
+    gap: 10px;
+}
+
+.version-history-item {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+}
+
+.version-history-item-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.version-history-item-header strong {
+    display: block;
+    font-size: 19px;
+}
+
+.version-history-date {
+    display: block;
+    margin-top: 3px;
+    color: var(--text-sub);
+    font-size: 12px;
+}
+
+.version-history-notes {
+    margin-top: 10px;
+    color: var(--text-main);
+    line-height: 1.55;
+    white-space: pre-wrap;
+}
+
+.version-history-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 8px;
+}
+
+.version-history-actions button {
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+.version-history-delete {
+    background: #ff453a;
+}
+
 .switch {
     position: relative;
     width: 52px;
@@ -1514,6 +1606,19 @@ body.compact-mode #messages {
 
     .setting-action-btn {
         width: 100%;
+    }
+
+    .version-history-header {
+        flex-direction: column;
+    }
+
+    .version-history-header .setting-action-btn {
+        width: auto;
+    }
+
+    .version-history-form,
+    .version-history-actions {
+        display: none;
     }
 
     .room-item {

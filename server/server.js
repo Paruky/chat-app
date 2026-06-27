@@ -6,10 +6,12 @@ const { createSupabaseClient } = require("./supabase");
 const { createRoomsRepository } = require("./repositories/roomsRepository");
 const { createMessagesRepository } = require("./repositories/messagesRepository");
 const { createPushSubscriptionsRepository } = require("./repositories/pushSubscriptionsRepository");
+const { createVersionHistoryRepository } = require("./repositories/versionHistoryRepository");
 const {
     createPushNotificationService,
     registerPushRoutes
 } = require("./pushNotifications");
+const { registerVersionHistoryRoutes } = require("./versionHistoryRoutes");
 const { registerSocketHandlers } = require("./socketHandlers");
 const { createNotificationPresence } = require("./notificationPresence");
 
@@ -36,6 +38,7 @@ function createServer() {
     app.use(express.json({ limit: "1mb" }));
     app.use(express.static(config.publicDir));
     registerPushRoutes(app, pushNotifications);
+    registerVersionHistoryRoutes(app, createVersionHistoryRepository(supabase));
 
     registerSocketHandlers(io, {
         roomsRepository: createRoomsRepository(supabase),

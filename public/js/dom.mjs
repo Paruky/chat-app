@@ -47,6 +47,15 @@ export const elements = {
     notificationStatus: byId("notification-status"),
     compactModeToggle: byId("setting-compact-mode"),
     themeOptions: byId("theme-options"),
+    versionHistoryButton: byId("version-history-btn"),
+    versionHistoryBackButton: byId("version-history-back-btn"),
+    versionHistoryPanel: byId("version-history-panel"),
+    versionHistoryForm: byId("version-history-form"),
+    versionHistoryVersionInput: byId("version-history-version"),
+    versionHistoryNotesInput: byId("version-history-notes"),
+    versionHistoryCancelButton: byId("version-history-cancel-btn"),
+    versionHistorySubmitButton: byId("version-history-submit-btn"),
+    versionHistoryList: byId("version-history-list"),
     appVersion: byId("app-version")
 };
 
@@ -75,13 +84,15 @@ export function showChatView() {
 export function showMenuPanel(panel) {
     const isDms = panel === "dms";
     const isSettings = panel === "settings";
+    const isVersionHistory = panel === "versions";
 
-    elements.roomsPanel.hidden = isDms || isSettings;
+    elements.roomsPanel.hidden = isDms || isSettings || isVersionHistory;
     elements.dmsPanel.hidden = !isDms;
     elements.settingsPanel.hidden = !isSettings;
-    elements.roomsNavButton.classList.toggle("active", !isDms && !isSettings);
+    elements.versionHistoryPanel.hidden = !isVersionHistory;
+    elements.roomsNavButton.classList.toggle("active", !isDms && !isSettings && !isVersionHistory);
     elements.dmsNavButton.classList.toggle("active", isDms);
-    elements.settingsNavButton.classList.toggle("active", isSettings);
+    elements.settingsNavButton.classList.toggle("active", isSettings || isVersionHistory);
 }
 
 export function setUserBar(profile) {

@@ -71,6 +71,7 @@ import {
     setupTypingInput,
     showTypingIndicator
 } from "./typing.mjs";
+import { setupVersionHistoryPage } from "./versionHistory.mjs";
 import { APP_VERSION } from "./version.mjs";
 
 const socket = window.io(SOCKET_OPTIONS);
@@ -130,6 +131,10 @@ function navigateToSettings() {
     window.location.hash = "#/settings";
 }
 
+function navigateToVersionHistory() {
+    window.location.hash = "#/versions";
+}
+
 function navigateToRoom(room) {
     window.location.hash = `#/rooms/${encodeRoomRoute(room)}`;
 }
@@ -152,6 +157,13 @@ function readRoute() {
     if (parts[0] === "settings") {
         return {
             view: "settings",
+            room: ""
+        };
+    }
+
+    if (parts[0] === "versions") {
+        return {
+            view: "versions",
             room: ""
         };
     }
@@ -189,7 +201,13 @@ function syncRoute() {
         return;
     }
 
-    showRoomMenu(route.view === "settings" ? "settings" : route.view === "dms" ? "dms" : "rooms");
+    showRoomMenu(
+        route.view === "settings" || route.view === "versions"
+            ? route.view
+            : route.view === "dms"
+                ? "dms"
+                : "rooms"
+    );
 }
 
 function cleanText(value, maxLength) {
@@ -484,6 +502,10 @@ function showRoomMenu(panel = "rooms") {
 
     if (panel === "settings") {
         refreshNotificationStatus();
+    }
+
+    if (panel === "versions") {
+        versionHistoryPage.open();
     }
 
     if (previousRoom) {
@@ -815,6 +837,10 @@ const settingsPanel = setupSettingsPanel({
     onChange: updateSettings
 });
 
+const versionHistoryPage = setupVersionHistoryPage({
+    elements
+});
+
 elements.messages.addEventListener("scroll", () => {
     state.shouldAutoScroll = isNearBottom();
 
@@ -856,6 +882,14 @@ elements.dmsNavButton.addEventListener("click", () => {
 });
 
 elements.settingsNavButton.addEventListener("click", () => {
+    navigateToSettings();
+});
+
+elements.versionHistoryButton.addEventListener("click", () => {
+    navigateToVersionHistory();
+});
+
+elements.versionHistoryBackButton.addEventListener("click", () => {
     navigateToSettings();
 });
 
