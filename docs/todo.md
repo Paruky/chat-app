@@ -15,9 +15,10 @@
 
 ## Messages
 
-- Consider image upload.
+- Consider stamp
 - Consider reactions.
 - Consider message delete.
+- Consider hyperlink
 
 ## Notifications
 
