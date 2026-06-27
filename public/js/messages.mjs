@@ -9,6 +9,8 @@ const REPLY_CLICK_DELAY = 260;
 const SWIPE_REPLY_THRESHOLD = 58;
 const SWIPE_REPLY_MAX = 76;
 const SWIPE_VERTICAL_CANCEL = 20;
+const URL_PATTERN = /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+const TRAILING_URL_PUNCTUATION = /[.,!?;:、。！？）)\]}]/;
 
 export function isNearBottom() {
     return (
@@ -139,7 +141,7 @@ function enableReplyNavigation(item, data, callbacks) {
 
         if (
             item.dataset.ignoreReplyTap ||
-            (target instanceof Element && target.closest("button"))
+            (target instanceof Element && target.closest("button, a"))
         ) {
             return;
         }
@@ -156,6 +158,90 @@ function enableReplyNavigation(item, data, callbacks) {
             onOpenReplyThread(data);
         }, REPLY_CLICK_DELAY);
     });
+}
+
+function splitUrlText(value) {
+    let urlText = value;
+    let trailingText = "";
+
+    while (urlText) {
+        const lastCharacter = urlText.charAt(urlText.length - 1);
+
+        if (!TRAILING_URL_PUNCTUATION.test(lastCharacter)) break;
+
+        trailingText = `${lastCharacter}${trailingText}`;
+        urlText = urlText.slice(0, -1);
+    }
+
+    return {
+        urlText,
+        trailingText
+    };
+}
+
+function normalizeLinkHref(value) {
+    const candidate = value.startsWith("www.") ? `https://${value}` : value;
+
+    try {
+        const url = new URL(candidate);
+
+        if (url.protocol !== "http:" && url.protocol !== "https:") {
+            return "";
+        }
+
+        return url.href;
+    } catch (error) {
+        return "";
+    }
+}
+
+function createMessageLink(text, href) {
+    const link = document.createElement("a");
+
+    link.className = "message-link";
+    link.href = href;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.referrerPolicy = "no-referrer";
+    link.textContent = text;
+    link.addEventListener("click", (event) => {
+        event.stopPropagation();
+    });
+
+    return link;
+}
+
+function appendLinkedText(container, value) {
+    const text = String(value || "");
+    let lastIndex = 0;
+
+    for (const match of text.matchAll(URL_PATTERN)) {
+        const rawMatch = match[0];
+        const startIndex = match.index || 0;
+        const {
+            urlText,
+            trailingText
+        } = splitUrlText(rawMatch);
+        const href = normalizeLinkHref(urlText);
+
+        if (!href) continue;
+
+        if (startIndex > lastIndex) {
+            container.appendChild(document.createTextNode(text.slice(lastIndex, startIndex)));
+        }
+
+        container.appendChild(createMessageLink(urlText, href));
+
+        if (trailingText) {
+            container.appendChild(document.createTextNode(trailingText));
+        }
+
+        lastIndex = startIndex + rawMatch.length;
+    }
+
+    if (lastIndex < text.length) {
+        container.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
 }
 
 function enableSwipeReply(item, data, options) {
@@ -296,7 +382,7 @@ function createMessageBody(payload) {
 
     const text = document.createElement("div");
     text.className = "message-text";
-    text.textContent = payload.text;
+    appendLinkedText(text, payload.text);
     body.appendChild(text);
 
     return body;

@@ -9,6 +9,10 @@
 
     --text-main: #fff;
     --text-sub: #888;
+    --link-color: #8cc8ff;
+    --link-hover: #c8e7ff;
+    --own-link-color: #e0f2fe;
+    --own-link-hover: #ffffff;
 
     --border: #333;
 
@@ -26,6 +30,10 @@ html[data-theme="light"] {
     --accent-hover: #1d4ed8;
     --text-main: #111827;
     --text-sub: #6b7280;
+    --link-color: #1d4ed8;
+    --link-hover: #1e40af;
+    --own-link-color: #eff6ff;
+    --own-link-hover: #ffffff;
     --border: #dbe2ea;
 }
 
@@ -38,6 +46,10 @@ html[data-theme="line"] {
     --accent-hover: #05ad49;
     --text-main: #142116;
     --text-sub: #5f7563;
+    --link-color: #0b63ce;
+    --link-hover: #084a99;
+    --own-link-color: #063f7a;
+    --own-link-hover: #012a4a;
     --border: #cfe2d3;
 }
 
@@ -50,6 +62,10 @@ html[data-theme="midnight"] {
     --accent-hover: #0ea5e9;
     --text-main: #f8fafc;
     --text-sub: #94a3b8;
+    --link-color: #7dd3fc;
+    --link-hover: #bae6fd;
+    --own-link-color: #e0f2fe;
+    --own-link-hover: #ffffff;
     --border: #334155;
 }
 
@@ -62,6 +78,10 @@ html[data-theme="sakura"] {
     --accent-hover: #f43f7f;
     --text-main: #2b1520;
     --text-sub: #8a6070;
+    --link-color: #1d4ed8;
+    --link-hover: #1e40af;
+    --own-link-color: #1e3a8a;
+    --own-link-hover: #172554;
     --border: #f6cbd8;
 }
 
@@ -74,6 +94,10 @@ html[data-theme="cyber"] {
     --accent-hover: #a855f7;
     --text-main: #f8f7ff;
     --text-sub: #a8a3c8;
+    --link-color: #a5b4fc;
+    --link-hover: #c4b5fd;
+    --own-link-color: #e0e7ff;
+    --own-link-hover: #ffffff;
     --border: #30304f;
 }
 
@@ -637,6 +661,29 @@ textarea {
     line-height: 1.4;
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+.message-link,
+.message-link:visited {
+    color: var(--link-color);
+    font-weight: 700;
+    text-decoration-line: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+    overflow-wrap: anywhere;
+}
+
+.message-link:hover {
+    color: var(--link-hover);
+}
+
+.my-message .message-link,
+.my-message .message-link:visited {
+    color: var(--own-link-color);
+}
+
+.my-message .message-link:hover {
+    color: var(--own-link-hover);
 }
 
 .reply-reference {
