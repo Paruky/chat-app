@@ -251,6 +251,64 @@ function createMessageLink(text, href) {
     return link;
 }
 
+function formatFileSize(bytes) {
+    const size = Number(bytes) || 0;
+
+    if (size < 1024) return `${size}B`;
+    if (size < 1024 * 1024) return `${Math.round(size / 1024)}KB`;
+
+    return `${(size / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+function createFileMessageCard(payload) {
+    const card = document.createElement("div");
+    card.className = "message-file-card";
+
+    const icon = document.createElement("div");
+    icon.className = "message-file-icon";
+    icon.textContent = "FILE";
+
+    const details = document.createElement("div");
+    details.className = "message-file-details";
+
+    const name = document.createElement("div");
+    name.className = "message-file-name";
+    name.textContent = payload.name || "file";
+
+    const meta = document.createElement("div");
+    meta.className = "message-file-meta";
+    meta.textContent = [
+        payload.mimeType || "application/octet-stream",
+        formatFileSize(payload.size)
+    ].filter(Boolean).join(" ・ ");
+
+    const actions = document.createElement("div");
+    actions.className = "message-file-actions";
+
+    const openLink = document.createElement("a");
+    openLink.href = payload.dataUrl;
+    openLink.target = "_blank";
+    openLink.rel = "noopener noreferrer";
+    openLink.textContent = "開く";
+
+    const downloadLink = document.createElement("a");
+    downloadLink.href = payload.dataUrl;
+    downloadLink.download = payload.name || "file";
+    downloadLink.textContent = "保存";
+
+    [openLink, downloadLink].forEach((link) => {
+        link.addEventListener("click", (event) => {
+            event.stopPropagation();
+        });
+    });
+
+    actions.append(openLink, downloadLink);
+    details.append(name, meta, actions);
+    card.append(icon, details);
+
+    return card;
+}
+
 function appendLinkedText(container, value) {
     const text = String(value || "");
     let lastIndex = 0;
@@ -478,6 +536,11 @@ function createMessageBody(payload) {
         return body;
     }
 
+    if (payload.type === "file") {
+        body.appendChild(createFileMessageCard(payload));
+        return body;
+    }
+
     const text = document.createElement("div");
     text.className = "message-text";
 
@@ -531,6 +594,10 @@ function createMessageElement(data, options) {
 
     if (payload.type === "image") {
         item.classList.add("image-message");
+    }
+
+    if (payload.type === "file") {
+        item.classList.add("file-message");
     }
 
     if (data.id) {
@@ -621,6 +688,7 @@ export function updateMessage(data) {
 
         item.classList.toggle("deleted-message", payload.type === "deleted");
         item.classList.toggle("image-message", payload.type === "image");
+        item.classList.toggle("file-message", payload.type === "file");
         item.classList.toggle("reply-message", payload.type === "reply");
 
         if (payload.type !== "reply") {

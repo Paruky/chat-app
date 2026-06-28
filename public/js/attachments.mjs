@@ -1,4 +1,7 @@
-import { createImageMessagePayload } from "./messagePayloads.mjs";
+import {
+    createFileMessagePayload,
+    createImageMessagePayload
+} from "./messagePayloads.mjs";
 
 const MAX_IMAGE_EDGE = 1280;
 const IMAGE_MIME_TYPE = "image/jpeg";
@@ -9,9 +12,16 @@ function readFileAsDataUrl(file) {
         const reader = new FileReader();
 
         reader.addEventListener("load", () => resolve(String(reader.result || "")));
-        reader.addEventListener("error", () => reject(new Error("画像を読み込めませんでした")));
+        reader.addEventListener("error", () => reject(new Error("ファイルを読み込めませんでした")));
         reader.readAsDataURL(file);
     });
+}
+
+function formatMaxFileSize(maxPayloadLength) {
+    const roughBytes = Math.floor(maxPayloadLength * 0.72);
+    const megabytes = roughBytes / (1024 * 1024);
+
+    return `${megabytes.toFixed(1)}MB`;
 }
 
 function loadImage(dataUrl) {
@@ -66,4 +76,24 @@ export async function prepareImageAttachment(file, maxPayloadLength) {
     }
 
     throw new Error("画像が大きすぎます。少し小さい写真を選んでください");
+}
+
+export async function prepareFileAttachment(file, maxPayloadLength) {
+    if (!file) {
+        throw new Error("ファイルを選んでください");
+    }
+
+    const dataUrl = await readFileAsDataUrl(file);
+    const payload = createFileMessagePayload({
+        dataUrl,
+        name: file.name,
+        mimeType: file.type,
+        size: file.size
+    });
+
+    if (payload.length <= maxPayloadLength) {
+        return payload;
+    }
+
+    throw new Error(`ファイルが大きすぎます。今は${formatMaxFileSize(maxPayloadLength)}くらいまで送れます`);
 }

@@ -4,6 +4,7 @@ const IMAGE_MESSAGE_TYPE = "paruky:image:v1";
 const REPLY_MESSAGE_TYPE = "paruky:reply:v1";
 const DELETED_MESSAGE_TYPE = "paruky:deleted:v1";
 const EFFECT_MESSAGE_TYPE = "paruky:effect:v1";
+const FILE_MESSAGE_TYPE = "paruky:file:v1";
 const PREVIEW_LENGTH = 90;
 
 function compactText(value) {
@@ -38,9 +39,23 @@ export function createImageMessagePayload(image) {
     });
 }
 
+export function createFileMessagePayload(file) {
+    return JSON.stringify({
+        type: FILE_MESSAGE_TYPE,
+        dataUrl: file.dataUrl,
+        name: compactText(file.name) || "file",
+        mimeType: compactText(file.mimeType) || "application/octet-stream",
+        size: Number(file.size) || 0
+    });
+}
+
 export function summarizePayload(payload) {
     if (payload.type === "image") {
         return "写真";
+    }
+
+    if (payload.type === "file") {
+        return `ファイル: ${trimPreview(payload.name)}`;
     }
 
     if (payload.type === "deleted") {
@@ -103,6 +118,21 @@ export function parseMessagePayload(message) {
                 name: parsed.name || "写真",
                 width: Number(parsed.width) || 0,
                 height: Number(parsed.height) || 0
+            };
+        }
+
+        if (
+            parsed?.type === FILE_MESSAGE_TYPE &&
+            typeof parsed.dataUrl === "string" &&
+            parsed.dataUrl.startsWith("data:") &&
+            typeof parsed.name === "string"
+        ) {
+            return {
+                type: "file",
+                dataUrl: parsed.dataUrl,
+                name: compactText(parsed.name) || "file",
+                mimeType: compactText(parsed.mimeType) || "application/octet-stream",
+                size: Number(parsed.size) || 0
             };
         }
 

@@ -1,5 +1,8 @@
 import { SOCKET_OPTIONS, SUPABASE_CONFIG, LIMITS } from "./config.mjs";
-import { prepareImageAttachment } from "./attachments.mjs";
+import {
+    prepareFileAttachment,
+    prepareImageAttachment
+} from "./attachments.mjs";
 import {
     elements,
     setAppVersion,
@@ -99,6 +102,7 @@ const state = {
     visibleUnreadCount: 0,
     shouldAutoScroll: true,
     isSendingImage: false,
+    isSendingFile: false,
     notificationStatus: {
         supported: isNotificationSupported(),
         configured: false,
@@ -439,6 +443,7 @@ async function sendPhoto(file) {
     state.isSendingImage = true;
     elements.attachmentButton.disabled = true;
     elements.photoUploadButton.disabled = true;
+    elements.fileUploadButton.disabled = true;
 
     try {
         const payload = await prepareImageAttachment(file, LIMITS.imageMessage);
@@ -451,7 +456,32 @@ async function sendPhoto(file) {
         state.isSendingImage = false;
         elements.attachmentButton.disabled = false;
         elements.photoUploadButton.disabled = false;
+        elements.fileUploadButton.disabled = false;
         elements.photoInput.value = "";
+    }
+}
+
+async function sendFile(file) {
+    if (state.isSendingFile) return;
+
+    state.isSendingFile = true;
+    elements.attachmentButton.disabled = true;
+    elements.photoUploadButton.disabled = true;
+    elements.fileUploadButton.disabled = true;
+
+    try {
+        const payload = await prepareFileAttachment(file, LIMITS.fileMessage);
+        sendCurrentRoomMessage(payload);
+        setAttachmentMenuOpen(false);
+        effectSendMenu.close();
+    } catch (error) {
+        window.alert(error.message || "ファイルを送信できませんでした");
+    } finally {
+        state.isSendingFile = false;
+        elements.attachmentButton.disabled = false;
+        elements.photoUploadButton.disabled = false;
+        elements.fileUploadButton.disabled = false;
+        elements.fileInput.value = "";
     }
 }
 
@@ -960,8 +990,16 @@ elements.photoUploadButton.addEventListener("click", () => {
     elements.photoInput.click();
 });
 
+elements.fileUploadButton.addEventListener("click", () => {
+    elements.fileInput.click();
+});
+
 elements.photoInput.addEventListener("change", () => {
     sendPhoto(elements.photoInput.files?.[0]);
+});
+
+elements.fileInput.addEventListener("change", () => {
+    sendFile(elements.fileInput.files?.[0]);
 });
 
 elements.replyCancelButton.addEventListener("click", () => {

@@ -75,6 +75,10 @@ function getMessagePreview(message) {
         return "写真を送信しました";
     }
 
+    if (payload.type === "paruky:file:v1") {
+        return truncate(`ファイルを送信しました: ${payload.name || "file"}`, 120);
+    }
+
     if (payload.type === "paruky:reply:v1" && payload.text) {
         return truncate(payload.text, 120);
     }
