@@ -117,7 +117,8 @@ export function setupVersionHistoryPage(options) {
         entries: [],
         editingId: "",
         canEdit: false,
-        hasLoaded: false
+        hasLoaded: false,
+        isSaving: false
     };
 
     function resetForm() {
@@ -131,6 +132,8 @@ export function setupVersionHistoryPage(options) {
     function render() {
         elements.versionHistoryPanel.classList.toggle("can-edit", state.canEdit);
         elements.versionHistoryForm.hidden = !state.canEdit;
+        elements.versionHistorySubmitButton.disabled = state.isSaving;
+        elements.versionHistoryCancelButton.disabled = state.isSaving;
         elements.versionHistoryList.replaceChildren();
 
         if (!state.hasLoaded) {
@@ -184,6 +187,7 @@ export function setupVersionHistoryPage(options) {
         event.preventDefault();
 
         if (!state.canEdit) return;
+        if (state.isSaving) return;
 
         const entry = {
             version: elements.versionHistoryVersionInput.value.trim(),
@@ -192,14 +196,22 @@ export function setupVersionHistoryPage(options) {
 
         if (!entry.version || !entry.notes) return;
 
-        if (state.editingId) {
-            await updateEntry(state.editingId, entry);
-        } else {
-            await createEntry(entry);
-        }
+        state.isSaving = true;
+        render();
 
-        resetForm();
-        await refresh();
+        try {
+            if (state.editingId) {
+                await updateEntry(state.editingId, entry);
+            } else {
+                await createEntry(entry);
+            }
+
+            resetForm();
+            await refresh();
+        } finally {
+            state.isSaving = false;
+            render();
+        }
     });
 
     elements.versionHistoryCancelButton.addEventListener("click", resetForm);

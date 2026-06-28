@@ -87,9 +87,6 @@ function createVersionHistoryRepository(supabase) {
     }
 
     async function createEntry(entry) {
-        const memoryEntry = createMemoryEntry(entry);
-        memoryEntries.set(memoryEntry.id, memoryEntry);
-
         const { data, error } = await supabase
             .from(TABLE_NAME)
             .insert([{
@@ -100,18 +97,16 @@ function createVersionHistoryRepository(supabase) {
             .single();
 
         if (error) {
+            const memoryEntry = createMemoryEntry(entry);
+
+            memoryEntries.set(memoryEntry.id, memoryEntry);
             warnSupabaseFallback(error);
             return memoryEntry;
         }
 
         const normalized = normalizeEntry(data);
 
-        if (normalized) {
-            memoryEntries.delete(memoryEntry.id);
-            memoryEntries.set(normalized.id, normalized);
-        }
-
-        return normalized || memoryEntry;
+        return normalized || createMemoryEntry(entry);
     }
 
     async function updateEntry(id, entry) {
@@ -124,7 +119,10 @@ function createVersionHistoryRepository(supabase) {
             updatedAt: new Date().toISOString()
         };
 
-        memoryEntries.set(updatedEntry.id, updatedEntry);
+        if (currentEntry) {
+            memoryEntries.set(updatedEntry.id, updatedEntry);
+            return updatedEntry;
+        }
 
         const { data, error } = await supabase
             .from(TABLE_NAME)
@@ -143,10 +141,6 @@ function createVersionHistoryRepository(supabase) {
         }
 
         const normalized = normalizeEntry(data);
-
-        if (normalized) {
-            memoryEntries.set(normalized.id, normalized);
-        }
 
         return normalized || updatedEntry;
     }
