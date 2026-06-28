@@ -2230,6 +2230,10 @@ body.compact-mode #messages {
         min-height: 58px;
     }
 
+    #file-upload-btn {
+        display: none;
+    }
+
     .effect-menu-panel {
         left: 10px;
         right: 10px;
