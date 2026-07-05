@@ -3,7 +3,11 @@
 export const DEFAULT_CANNED_MESSAGES = [
     {
         id: "preset-ok",
-        text: "了解！"
+        text: "おけ"
+    },
+    {
+        id: "preset-hello",
+        text: "うぇい"
     },
     {
         id: "preset-wait",
@@ -11,7 +15,7 @@ export const DEFAULT_CANNED_MESSAGES = [
     },
     {
         id: "preset-now",
-        text: "今いける！"
+        text: "今いけるぜ"
     },
     {
         id: "preset-later",
@@ -22,7 +26,23 @@ export const DEFAULT_CANNED_MESSAGES = [
         text: "ありがとう！"
     },
     {
-        id: "preset-call",
-        text: "通話できる？"
-    }
+        id: "preset-lol",
+        text: "草"
+    },
+    {
+        id: "preset-bath",
+        text: "風呂食ってくる"
+    },
+    {
+        id: "preset-eat",
+        text: "飯入ってくる"
+    },
+    {
+        id: "preset-study",
+        text: "勉強する"
+    },
+    {
+        id: "preset-sleep",
+        text: "寝るわ"
+    },
 ];
