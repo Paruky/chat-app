@@ -7,7 +7,7 @@ The real reason is also simple: it makes the app feel cooler.
 
 ## Current Version
 
-Alpha 1.8
+Alpha 1.9
 
 ## Rules
 
@@ -22,6 +22,7 @@ Alpha 1.8
 - `Alpha 1.6` added the in-app version history page with PC editing and mobile read-only viewing.
 - `Alpha 1.7` added send-with-effect messages, including bubble effects and screen effects from a long-press send menu.
 - `Alpha 1.8` added general file attachments for PDFs, HTML, and other small files.
+- `Alpha 1.9` added canned messages with shared presets and account-scoped custom phrases.
 - Raise the major number when the update feels big.
 - Raise the minor number for smaller updates and bug fixes.
 - There is no strict corporate-style line. Coolness and update feeling matter.

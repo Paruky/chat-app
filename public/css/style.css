@@ -555,6 +555,23 @@ button {
     color: white;
 }
 
+#canned-btn {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--bg-card);
+    color: var(--text-main);
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+#canned-btn[aria-expanded="true"] {
+    background: var(--accent);
+    color: white;
+}
+
 #attachment-menu {
     position: absolute;
     left: 10px;
@@ -585,6 +602,149 @@ button {
 #photo-upload-btn:hover,
 #file-upload-btn:hover {
     background: rgba(255, 255, 255, 0.08);
+}
+
+.canned-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 350;
+    pointer-events: none;
+}
+
+.canned-menu[hidden] {
+    display: none;
+}
+
+.canned-menu-panel {
+    position: absolute;
+    left: 50%;
+    bottom: calc(84px + env(safe-area-inset-bottom));
+    width: min(520px, calc(100vw - 20px));
+    max-height: min(70vh, 620px);
+    overflow-y: auto;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    background:
+        linear-gradient(155deg, rgba(35, 38, 42, 0.98), rgba(16, 16, 20, 0.96)),
+        var(--bg-card);
+    box-shadow:
+        0 24px 80px rgba(0, 0, 0, 0.52),
+        inset 0 1px 0 rgba(255, 255, 255, 0.09);
+    transform: translateX(-50%);
+    pointer-events: auto;
+    -webkit-backdrop-filter: blur(22px);
+    backdrop-filter: blur(22px);
+}
+
+.canned-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.canned-menu-header strong {
+    display: block;
+    margin-top: 2px;
+    font-size: 18px;
+}
+
+.canned-menu-kicker,
+.canned-section-title {
+    color: var(--text-sub);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+#canned-close-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+    font-size: 22px;
+    line-height: 1;
+}
+
+.canned-section + .canned-section {
+    margin-top: 14px;
+}
+
+.canned-section-title {
+    margin-bottom: 8px;
+}
+
+.canned-list {
+    display: grid;
+    gap: 8px;
+}
+
+.canned-message-item {
+    width: 100%;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-main);
+    text-align: left;
+    line-height: 1.35;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.canned-message-item:hover,
+.canned-message-item:focus-visible {
+    border-color: color-mix(in srgb, var(--accent-hover) 70%, transparent);
+    background: rgba(255, 255, 255, 0.11);
+}
+
+.canned-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.canned-form input {
+    min-height: 44px;
+    padding: 12px;
+}
+
+.canned-form button {
+    min-height: 44px;
+    padding: 0 14px;
+}
+
+.canned-custom-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+}
+
+.canned-delete-btn {
+    align-self: stretch;
+    padding: 0 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.07);
+    color: #ff8a8a;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.canned-delete-btn:hover {
+    background: rgba(255, 90, 90, 0.16);
+}
+
+.canned-empty {
+    padding: 12px 14px;
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    color: var(--text-sub);
+    font-size: 13px;
 }
 
 .effect-menu {
@@ -2232,6 +2392,23 @@ body.compact-mode #messages {
 
     #file-upload-btn {
         display: none;
+    }
+
+    .canned-menu-panel {
+        left: 10px;
+        right: 10px;
+        bottom: calc(82px + env(safe-area-inset-bottom));
+        width: auto;
+        max-height: min(68vh, 560px);
+        transform: none;
+    }
+
+    .canned-form {
+        align-items: stretch;
+    }
+
+    .canned-message-item {
+        padding: 13px 14px;
     }
 
     .effect-menu-panel {

@@ -3,7 +3,8 @@ const KEYS = {
     unreadCounts: "unreadCounts",
     settings: "settings",
     hiddenDmRooms: "hiddenDmRooms",
-    dmDisplayNames: "dmDisplayNames"
+    dmDisplayNames: "dmDisplayNames",
+    cannedMessages: "cannedMessages"
 };
 
 function readJson(key, fallback) {
@@ -22,6 +23,10 @@ function writeJson(key, value) {
     } catch (error) {
         console.warn(`localStorage write failed: ${key}`, error);
     }
+}
+
+function accountScopedKey(baseKey, accountKey) {
+    return `${baseKey}:${String(accountKey || "default")}`;
 }
 
 export function loadLastRoom() {
@@ -62,4 +67,12 @@ export function loadDmDisplayNames() {
 
 export function saveDmDisplayNames(names) {
     writeJson(KEYS.dmDisplayNames, names);
+}
+
+export function loadCannedMessages(accountKey) {
+    return readJson(accountScopedKey(KEYS.cannedMessages, accountKey), []);
+}
+
+export function saveCannedMessages(accountKey, messages) {
+    writeJson(accountScopedKey(KEYS.cannedMessages, accountKey), messages);
 }

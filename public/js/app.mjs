@@ -3,6 +3,7 @@ import {
     prepareFileAttachment,
     prepareImageAttachment
 } from "./attachments.mjs";
+import { setupCannedMessagesPanel } from "./cannedMessages.mjs";
 import {
     elements,
     setAppVersion,
@@ -63,9 +64,11 @@ import {
     loadDmDisplayNames,
     loadHiddenDmRooms,
     loadUnreadCounts,
+    loadCannedMessages,
     loadSettings,
     saveDmDisplayNames,
     saveHiddenDmRooms,
+    saveCannedMessages,
     saveLastRoom,
     saveSettings,
     saveUnreadCounts
@@ -358,6 +361,15 @@ function getComposerText() {
     return cleanText(elements.input.value, LIMITS.message);
 }
 
+function createTextMessage(text) {
+    return state.replyTarget
+        ? createReplyMessagePayload({
+            text,
+            replyTo: state.replyTarget
+        })
+        : text;
+}
+
 function renderReplyComposer() {
     if (!state.replyTarget) {
         elements.replyComposer.hidden = true;
@@ -417,6 +429,24 @@ function sendCurrentRoomMessage(message) {
     });
 
     return true;
+}
+
+function sendTextMessage(text) {
+    const cleanMessage = cleanText(text, LIMITS.message);
+
+    if (!cleanMessage) return false;
+
+    const sent = sendCurrentRoomMessage(createTextMessage(cleanMessage));
+
+    if (sent) {
+        typing.resetInput();
+        setAttachmentMenuOpen(false);
+        cannedMessagesPanel.close();
+        effectSendMenu.close();
+        clearReplyTarget();
+    }
+
+    return sent;
 }
 
 function sendTextWithEffect(effect) {
@@ -547,6 +577,7 @@ function showRoomMenu(panel = "rooms") {
 
     typing.stopTyping();
     setAttachmentMenuOpen(false);
+    cannedMessagesPanel.close();
     effectSendMenu.close();
     clearReplyTarget();
     state.currentMessages = [];
@@ -739,6 +770,7 @@ function joinRoom(value, options = {}) {
 
     typing.stopTyping();
     setAttachmentMenuOpen(false);
+    cannedMessagesPanel.close();
     effectSendMenu.close();
 
     state.currentRoom = room;
@@ -772,6 +804,7 @@ function joinDm(value, options = {}) {
 
     typing.stopTyping();
     setAttachmentMenuOpen(false);
+    cannedMessagesPanel.close();
     effectSendMenu.close();
 
     showDmRoom(nextRoom);
@@ -889,6 +922,21 @@ const effectSendMenu = setupEffectSendMenu({
     onOpenChange: (isOpen) => {
         if (isOpen) {
             setAttachmentMenuOpen(false);
+            cannedMessagesPanel.close();
+        }
+    }
+});
+
+const cannedMessagesPanel = setupCannedMessagesPanel({
+    elements,
+    getAccountKey: getCurrentAccount,
+    loadMessages: loadCannedMessages,
+    saveMessages: saveCannedMessages,
+    onSend: sendTextMessage,
+    onOpenChange: (isOpen) => {
+        if (isOpen) {
+            setAttachmentMenuOpen(false);
+            effectSendMenu.close();
         }
     }
 });
@@ -978,6 +1026,7 @@ elements.attachmentButton.addEventListener("click", (event) => {
 
     if (!state.currentRoom) return;
 
+    cannedMessagesPanel.close();
     effectSendMenu.close();
     setAttachmentMenuOpen(elements.attachmentMenu.hidden);
 });
@@ -1039,22 +1088,7 @@ elements.form.addEventListener("submit", (event) => {
 
     const text = getComposerText();
 
-    if (!text) return;
-
-    const message = state.replyTarget
-        ? createReplyMessagePayload({
-            text,
-            replyTo: state.replyTarget
-        })
-        : text;
-    const sent = sendCurrentRoomMessage(message);
-
-    if (sent) {
-        typing.resetInput();
-        setAttachmentMenuOpen(false);
-        effectSendMenu.close();
-        clearReplyTarget();
-    }
+    sendTextMessage(text);
 });
 
 socket.on("connect", () => {

@@ -186,6 +186,16 @@
                     <input id="photo-input" type="file" accept="image/*" hidden>
                     <input id="file-input" type="file" hidden>
 
+                    <button
+                        id="canned-btn"
+                        type="button"
+                        aria-label="定型文"
+                        aria-haspopup="menu"
+                        aria-expanded="false"
+                    >
+                        定
+                    </button>
+
                     <textarea
                         id="input"
                         placeholder="メッセージを入力"
@@ -200,6 +210,34 @@
                     >
                         送信
                     </button>
+                </div>
+
+                <div id="canned-menu" class="canned-menu" role="menu" hidden>
+                    <div class="canned-menu-panel">
+                        <div class="canned-menu-header">
+                            <div>
+                                <div class="canned-menu-kicker">Quick phrases</div>
+                                <strong>定型文</strong>
+                            </div>
+                            <button id="canned-close-btn" type="button" aria-label="閉じる">
+                                ×
+                            </button>
+                        </div>
+
+                        <section class="canned-section">
+                            <div class="canned-section-title">共通</div>
+                            <div id="canned-preset-list" class="canned-list"></div>
+                        </section>
+
+                        <section class="canned-section">
+                            <div class="canned-section-title">自分用</div>
+                            <div id="canned-form" class="canned-form">
+                                <input id="canned-input" placeholder="自分用定型文を追加">
+                                <button id="canned-add-btn" type="button">追加</button>
+                            </div>
+                            <div id="canned-custom-list" class="canned-list canned-custom-list"></div>
+                        </section>
+                    </div>
                 </div>
 
                 <div id="effect-menu" class="effect-menu" role="menu" hidden>
