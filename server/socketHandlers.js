@@ -10,6 +10,16 @@ function cleanMessageId(value) {
     return id && id.length <= 80 ? id : null;
 }
 
+function cleanUserId(value) {
+    return String(value || "").trim().slice(0, 160);
+}
+
+function cleanLastReadMessageId(value) {
+    const id = Number.parseInt(String(value || ""), 10);
+
+    return Number.isFinite(id) && id > 0 ? id : 0;
+}
+
 function logSocketError(action, error) {
     console.error(`[socket:${action}]`, error);
 }
@@ -26,10 +36,29 @@ function createDeletedMessagePayload(deletedBy) {
     });
 }
 
+function getMessageReadCount(message, receipts) {
+    const messageId = cleanLastReadMessageId(message?.id);
+
+    if (!messageId) return 0;
+
+    return receipts.filter((receipt) =>
+        receipt.userId !== message.userId &&
+        receipt.lastReadMessageId >= messageId
+    ).length;
+}
+
+function attachReadCounts(messages, receipts) {
+    return (messages || []).map((message) => ({
+        ...message,
+        readCount: getMessageReadCount(message, receipts)
+    }));
+}
+
 function registerSocketHandlers(io, dependencies) {
     const {
         roomsRepository,
         messagesRepository,
+        readReceiptsRepository,
         notificationPresence,
         pushNotifications,
         maxRoomNameLength,
@@ -44,6 +73,24 @@ function registerSocketHandlers(io, dependencies) {
         target.emit("room list", rooms);
     }
 
+    async function listMessagesWithReadCounts(room) {
+        const [rows, receipts] = await Promise.all([
+            messagesRepository.listMessages(room),
+            readReceiptsRepository.listReadReceipts(room)
+        ]);
+
+        return attachReadCounts(rows, receipts);
+    }
+
+    async function emitReadReceipts(room) {
+        const receipts = await readReceiptsRepository.listReadReceipts(room);
+
+        io.to(room).emit("read receipts", {
+            room,
+            receipts
+        });
+    }
+
     io.on("connection", async (socket) => {
         try {
             await emitRoomList(socket);
@@ -53,6 +100,7 @@ function registerSocketHandlers(io, dependencies) {
 
         socket.on("join room", async (data = {}) => {
             const room = cleanRoomName(data.room);
+            const userId = cleanUserId(data.userId);
 
             if (!room) return;
 
@@ -65,8 +113,9 @@ function registerSocketHandlers(io, dependencies) {
 
                 socket.join(room);
                 socket.currentRoom = room;
+                socket.currentUserId = userId;
 
-                const rows = await messagesRepository.listMessages(room);
+                const rows = await listMessagesWithReadCounts(room);
                 socket.emit("message history", rows);
 
                 await emitRoomList();
@@ -97,6 +146,32 @@ function registerSocketHandlers(io, dependencies) {
                 room: cleanRoomName(data.room),
                 visible: data.visible === true
             });
+        });
+
+        socket.on("read messages", async (data = {}) => {
+            const room = cleanRoomName(data.room);
+            const userId = cleanUserId(data.userId || socket.currentUserId);
+            const lastReadMessageId = cleanLastReadMessageId(data.lastReadMessageId);
+
+            if (
+                !room ||
+                !userId ||
+                !lastReadMessageId ||
+                socket.currentRoom !== room
+            ) {
+                return;
+            }
+
+            try {
+                await readReceiptsRepository.saveReadReceipt({
+                    room,
+                    userId,
+                    lastReadMessageId
+                });
+                await emitReadReceipts(room);
+            } catch (error) {
+                logSocketError("read-messages", error);
+            }
         });
 
         socket.on("delete dm room", async (data = {}) => {
@@ -150,7 +225,10 @@ function registerSocketHandlers(io, dependencies) {
                     avatar_url: data.avatar_url || ""
                 });
 
-                io.to(room).emit("chat message", insertedMessage);
+                io.to(room).emit("chat message", {
+                    ...insertedMessage,
+                    readCount: 0
+                });
 
                 socket.broadcast.emit("new message notification", {
                     room,

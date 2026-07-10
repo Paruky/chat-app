@@ -80,6 +80,36 @@ function isDeletedMessageData(message) {
     return parseMessagePayload(message?.message).type === "deleted";
 }
 
+function getReadCount(message) {
+    const count = Number.parseInt(String(message?.readCount || message?.read_count || 0), 10);
+
+    return Number.isFinite(count) && count > 0 ? count : 0;
+}
+
+function createReadReceiptElement(message, { currentUserId, isDm }) {
+    const payload = parseMessagePayload(message?.message);
+    const isOwnMessage = message?.userId && message.userId === currentUserId;
+    const readCount = getReadCount(message);
+
+    if (!isOwnMessage || payload.type === "deleted" || readCount <= 0) return null;
+
+    const receipt = document.createElement("div");
+    receipt.className = "message-read-receipt";
+    receipt.textContent = isDm ? "既読" : `既読 ${readCount}`;
+
+    return receipt;
+}
+
+function syncReadReceiptElement(item, message, options) {
+    item.querySelector(".message-read-receipt")?.remove();
+
+    const receipt = createReadReceiptElement(message, options);
+
+    if (receipt) {
+        item.appendChild(receipt);
+    }
+}
+
 export function scrollToMessage(messageId) {
     const item = findMessageElement(messageId);
 
@@ -598,6 +628,7 @@ function createMessageBody(payload) {
 function createMessageElement(data, options) {
     const {
         currentUserId,
+        isDm = false,
         onOpenMessageActions,
         onOpenReplyThread,
         onJumpToReplySource,
@@ -693,11 +724,12 @@ function createMessageElement(data, options) {
     content.append(createMessageBody(payload));
     header.append(avatar, content);
     item.appendChild(header);
+    syncReadReceiptElement(item, data, { currentUserId, isDm });
 
     return item;
 }
 
-export function updateMessage(data) {
+export function updateMessage(data, options = {}) {
     if (!data?.id) return;
 
     const item = [...elements.messages.querySelectorAll(".message")]
@@ -723,12 +755,31 @@ export function updateMessage(data) {
         applyEmojiPresentation(item, payload);
         applyEffectPresentation(item, payload);
         body.replaceWith(createMessageBody(payload));
+        syncReadReceiptElement(item, item.messageData, options);
     }
+}
+
+export function updateMessageReadReceipts(messages, options = {}) {
+    (messages || []).forEach((message) => {
+        if (!message?.id) return;
+
+        const item = [...elements.messages.querySelectorAll(".message")]
+            .find((element) => element.dataset.messageId === String(message.id));
+
+        if (!item) return;
+
+        item.messageData = {
+            ...item.messageData,
+            ...message
+        };
+        syncReadReceiptElement(item, item.messageData, options);
+    });
 }
 
 export function appendMessage(data, options) {
     const {
         currentUserId,
+        isDm = false,
         shouldAutoScroll,
         trackUnread = true,
         onUnread,
@@ -744,6 +795,7 @@ export function appendMessage(data, options) {
 
     elements.messages.appendChild(createMessageElement(data, {
         currentUserId,
+        isDm,
         onOpenMessageActions,
         onOpenReplyThread,
         onJumpToReplySource,
@@ -763,6 +815,7 @@ export function appendMessage(data, options) {
 export function renderMessageHistory(messages, options) {
     const {
         currentUserId,
+        isDm = false,
         onOpenMessageActions,
         onOpenReplyThread,
         onJumpToReplySource,
@@ -775,6 +828,7 @@ export function renderMessageHistory(messages, options) {
     (messages || []).forEach((message) => {
         appendMessage(message, {
             currentUserId,
+            isDm,
             shouldAutoScroll: false,
             trackUnread: false,
             onOpenMessageActions,

@@ -24,7 +24,8 @@ import {
     scrollToMessage,
     showMessageHistoryLoading,
     showNewMessageButton,
-    updateMessage
+    updateMessage,
+    updateMessageReadReceipts
 } from "./messages.mjs";
 import { setupMessageActions } from "./messageActions.mjs";
 import {
@@ -104,6 +105,7 @@ const state = {
     currentMessages: [],
     replyTarget: null,
     visibleUnreadCount: 0,
+    sentReadReceipts: {},
     shouldAutoScroll: true,
     isSendingImage: false,
     isSendingFile: false,
@@ -294,6 +296,80 @@ function showDmRoom(room) {
 
     state.hiddenDmRooms = state.hiddenDmRooms.filter((hiddenRoom) => hiddenRoom !== room);
     saveHiddenDmRooms(state.hiddenDmRooms);
+}
+
+function normalizeReceipt(receipt) {
+    const userId = String(receipt?.userId || receipt?.user_id || "").trim();
+    const lastReadMessageId = Number.parseInt(
+        String(receipt?.lastReadMessageId || receipt?.last_read_message_id || 0),
+        10
+    );
+
+    if (!userId || !Number.isFinite(lastReadMessageId) || lastReadMessageId <= 0) {
+        return null;
+    }
+
+    return {
+        userId,
+        lastReadMessageId
+    };
+}
+
+function getMessageId(message) {
+    const id = Number.parseInt(String(message?.id || ""), 10);
+
+    return Number.isFinite(id) && id > 0 ? id : 0;
+}
+
+function getLatestMessageId(messages = state.currentMessages) {
+    return (messages || []).reduce((latestId, message) =>
+        Math.max(latestId, getMessageId(message)), 0);
+}
+
+function countReadsForMessage(message, receipts) {
+    const messageId = getMessageId(message);
+
+    if (!messageId) return 0;
+
+    return receipts.filter((receipt) =>
+        receipt.userId !== message.userId &&
+        receipt.lastReadMessageId >= messageId
+    ).length;
+}
+
+function applyReadReceipts(receipts) {
+    const normalizedReceipts = (receipts || [])
+        .map(normalizeReceipt)
+        .filter(Boolean);
+
+    state.currentMessages = state.currentMessages.map((message) => ({
+        ...message,
+        readCount: countReadsForMessage(message, normalizedReceipts)
+    }));
+
+    updateMessageReadReceipts(state.currentMessages, {
+        currentUserId: state.user?.id,
+        isDm: isDmRoom(state.currentRoom)
+    });
+}
+
+function emitReadReceiptForLatestMessage() {
+    if (!state.currentRoom || !state.user || document.visibilityState !== "visible") return;
+
+    const lastReadMessageId = getLatestMessageId();
+
+    if (!lastReadMessageId) return;
+
+    const previousReadMessageId = state.sentReadReceipts[state.currentRoom] || 0;
+
+    if (previousReadMessageId >= lastReadMessageId) return;
+
+    state.sentReadReceipts[state.currentRoom] = lastReadMessageId;
+    socket.emit("read messages", {
+        room: state.currentRoom,
+        userId: state.user.id,
+        lastReadMessageId
+    });
 }
 
 function markRoomAsRead(room) {
@@ -531,6 +607,7 @@ function emitJoinRoom(room) {
 
     socket.emit("join room", {
         room,
+        userId: state.user.id,
         name: profile.name
     });
 }
@@ -981,12 +1058,14 @@ elements.messages.addEventListener("scroll", () => {
 
     if (state.shouldAutoScroll) {
         resetVisibleUnread();
+        emitReadReceiptForLatestMessage();
     }
 });
 
 elements.newMessageButton.addEventListener("click", () => {
     scrollMessagesToBottom();
     resetVisibleUnread();
+    emitReadReceiptForLatestMessage();
 });
 
 elements.roomForm.addEventListener("submit", (event) => {
@@ -1119,11 +1198,13 @@ socket.on("message history", (data) => {
     resetVisibleUnread();
     renderMessageHistory(data, {
         currentUserId: state.user?.id,
+        isDm: isDmRoom(state.currentRoom),
         onOpenMessageActions: messageActions.open,
         onOpenReplyThread: openReplyThread,
         onJumpToReplySource: jumpToReplySource,
         onSwipeReply: startReply
     });
+    emitReadReceiptForLatestMessage();
 });
 
 socket.on("room list", (rooms) => {
@@ -1144,6 +1225,7 @@ socket.on("chat message", (data) => {
     state.currentMessages.push(data);
     appendMessage(data, {
         currentUserId: state.user?.id,
+        isDm: isDmRoom(state.currentRoom),
         shouldAutoScroll: state.shouldAutoScroll,
         onOpenMessageActions: messageActions.open,
         onOpenReplyThread: openReplyThread,
@@ -1154,6 +1236,10 @@ socket.on("chat message", (data) => {
 
     if (payload.type === "effect" && isScreenMessageEffect(payload.effect)) {
         playScreenEffect(payload.effect, payload.text);
+    }
+
+    if (state.shouldAutoScroll) {
+        emitReadReceiptForLatestMessage();
     }
 });
 
@@ -1166,7 +1252,10 @@ socket.on("message edited", (data) => {
             }
             : message
     );
-    updateMessage(data);
+    updateMessage(data, {
+        currentUserId: state.user?.id,
+        isDm: isDmRoom(state.currentRoom)
+    });
 });
 
 socket.on("message deleted", (data) => {
@@ -1178,7 +1267,16 @@ socket.on("message deleted", (data) => {
             }
             : message
     );
-    updateMessage(data);
+    updateMessage(data, {
+        currentUserId: state.user?.id,
+        isDm: isDmRoom(state.currentRoom)
+    });
+});
+
+socket.on("read receipts", (data) => {
+    if (data?.room !== state.currentRoom) return;
+
+    applyReadReceipts(data.receipts);
 });
 
 socket.on("new message notification", (data) => {
@@ -1206,4 +1304,8 @@ window.addEventListener("hashchange", () => {
 
 document.addEventListener("visibilitychange", () => {
     syncNotificationPresence();
+
+    if (document.visibilityState === "visible" && isNearBottom()) {
+        emitReadReceiptForLatestMessage();
+    }
 });

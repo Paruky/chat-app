@@ -6,6 +6,7 @@ const { createSupabaseClient } = require("./supabase");
 const { createRoomsRepository } = require("./repositories/roomsRepository");
 const { createMessagesRepository } = require("./repositories/messagesRepository");
 const { createPushSubscriptionsRepository } = require("./repositories/pushSubscriptionsRepository");
+const { createReadReceiptsRepository } = require("./repositories/readReceiptsRepository");
 const { createVersionHistoryRepository } = require("./repositories/versionHistoryRepository");
 const {
     createPushNotificationService,
@@ -43,6 +44,7 @@ function createServer() {
     registerSocketHandlers(io, {
         roomsRepository: createRoomsRepository(supabase),
         messagesRepository: createMessagesRepository(supabase),
+        readReceiptsRepository: createReadReceiptsRepository(supabase),
         notificationPresence,
         pushNotifications,
         maxRoomNameLength: config.maxRoomNameLength,

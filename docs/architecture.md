@@ -9,6 +9,7 @@
 - `server/pushNotifications.js` owns Web Push setup, API routes, and notification sending.
 - `server/versionHistoryRoutes.js` owns the version history API.
 - `server/socketHandlers.js` owns realtime chat events.
+- `server/repositories/readReceiptsRepository.js` owns read receipt storage.
 - `public/js/app.mjs` wires the browser app together.
 - `public/js/messages.mjs` renders chat messages.
 - `public/js/messageActions.mjs` owns the right-click and long-press message action menu.
@@ -34,3 +35,4 @@ Before pushing a visible update, check `docs/versioning.md` and update the versi
 - Keep iPhone push notifications stable after future messaging changes.
 - Add a visible error message area for failed sends or failed room joins.
 - Add basic automated browser checks once the app has stable test data.
+- Keep the `read_receipts` table available in Supabase for persistent read receipts.
