@@ -44,6 +44,31 @@ export function hideNewMessageButton() {
     elements.newMessageButton.classList.remove("show");
 }
 
+function clearMessageHistoryLoading() {
+    elements.messages.classList.remove("messages-loading");
+    elements.messages.removeAttribute("aria-busy");
+}
+
+export function showMessageHistoryLoading() {
+    elements.messages.replaceChildren();
+    elements.messages.classList.add("messages-loading");
+    elements.messages.setAttribute("aria-busy", "true");
+
+    const loading = document.createElement("div");
+    loading.className = "messages-loading-state";
+    loading.setAttribute("role", "status");
+
+    const spinner = document.createElement("span");
+    spinner.className = "messages-loading-spinner";
+    spinner.setAttribute("aria-hidden", "true");
+
+    const text = document.createElement("span");
+    text.textContent = "メッセージを読み込み中";
+
+    loading.append(spinner, text);
+    elements.messages.appendChild(loading);
+}
+
 function findMessageElement(messageId) {
     if (!messageId) return null;
 
@@ -715,6 +740,8 @@ export function appendMessage(data, options) {
 
     if (!data) return;
 
+    clearMessageHistoryLoading();
+
     elements.messages.appendChild(createMessageElement(data, {
         currentUserId,
         onOpenMessageActions,
@@ -742,6 +769,7 @@ export function renderMessageHistory(messages, options) {
         onSwipeReply
     } = options;
 
+    clearMessageHistoryLoading();
     elements.messages.replaceChildren();
 
     (messages || []).forEach((message) => {

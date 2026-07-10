@@ -153,6 +153,39 @@ body {
     padding-bottom: 20px;
 }
 
+#messages.messages-loading {
+    align-items: center;
+    justify-content: center;
+}
+
+.messages-loading-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+
+    background: var(--bg-card);
+    color: var(--text-sub);
+    box-shadow: 0 14px 36px rgb(0 0 0 / 18%);
+
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.messages-loading-spinner {
+    width: 16px;
+    height: 16px;
+
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+
+    animation: messagesLoadingSpin 0.75s linear infinite;
+}
+
 .message {
     max-width: 80%;
 
@@ -385,6 +418,12 @@ body {
         transform:
             translateY(0)
             scale(1);
+    }
+}
+
+@keyframes messagesLoadingSpin {
+    to {
+        transform: rotate(360deg);
     }
 }
 

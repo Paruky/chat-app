@@ -22,6 +22,7 @@ import {
     renderMessageHistory,
     scrollMessagesToBottom,
     scrollToMessage,
+    showMessageHistoryLoading,
     showNewMessageButton,
     updateMessage
 } from "./messages.mjs";
@@ -350,6 +351,14 @@ function resetVisibleUnread() {
 function incrementVisibleUnread() {
     state.visibleUnreadCount += 1;
     showNewMessageButton(state.visibleUnreadCount);
+}
+
+function prepareConversationLoading() {
+    hideTypingIndicator();
+    clearReplyTarget();
+    replyThreadPanel.close();
+    state.currentMessages = [];
+    showMessageHistoryLoading();
 }
 
 function setAttachmentMenuOpen(isOpen) {
@@ -777,6 +786,7 @@ function joinRoom(value, options = {}) {
     elements.roomInput.value = room;
     elements.dmInput.value = "";
     setCurrentRoomName(room);
+    prepareConversationLoading();
     markRoomAsRead(room);
     resetVisibleUnread();
     saveLastRoom(room);
@@ -814,6 +824,7 @@ function joinDm(value, options = {}) {
     elements.roomInput.value = "";
     elements.dmInput.value = targetAccount;
     setCurrentConversationName(formatDmTitle(targetAccount));
+    prepareConversationLoading();
     markRoomAsRead(nextRoom);
     resetVisibleUnread();
     saveLastRoom(nextRoom);
