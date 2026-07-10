@@ -3,7 +3,7 @@
 export const DEFAULT_CANNED_MESSAGES = [
     {
         id: "preset-ok",
-        text: "おけ"
+        text: "おっけー"
     },
     {
         id: "preset-hello",
@@ -15,15 +15,15 @@ export const DEFAULT_CANNED_MESSAGES = [
     },
     {
         id: "preset-now",
-        text: "今いけるぜ"
+        text: "今いけるよ"
     },
     {
         id: "preset-later",
-        text: "あとで返信する！"
+        text: "あとで返信するわ！"
     },
     {
         id: "preset-thanks",
-        text: "ありがとう！"
+        text: "ありがとう"
     },
     {
         id: "preset-lol",
@@ -31,11 +31,11 @@ export const DEFAULT_CANNED_MESSAGES = [
     },
     {
         id: "preset-bath",
-        text: "風呂食ってくる"
+        text: "風呂入る"
     },
     {
         id: "preset-eat",
-        text: "飯入ってくる"
+        text: "飯食べる"
     },
     {
         id: "preset-study",
@@ -43,6 +43,6 @@ export const DEFAULT_CANNED_MESSAGES = [
     },
     {
         id: "preset-sleep",
-        text: "寝るわ"
+        text: "寝る"
     },
 ];
