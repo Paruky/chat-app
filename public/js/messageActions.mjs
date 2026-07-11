@@ -1,4 +1,8 @@
+import { parseMessagePayload } from "./messagePayloads.mjs";
+
 const LONG_PRESS_SOURCE = "longpress";
+const MENU_WIDTH = 156;
+const MENU_ITEM_HEIGHT = 48;
 
 function createActionLayer() {
     const layer = document.createElement("div");
@@ -32,22 +36,69 @@ function clamp(value, min, max) {
 }
 
 function positionMenu(menu, anchor, actionCount) {
-    const menuWidth = 180;
-    const menuHeight = actionCount * 50;
+    const menuHeight = actionCount * MENU_ITEM_HEIGHT;
     const padding = 12;
-    const x = clamp(anchor.x, padding, window.innerWidth - menuWidth - padding);
+    const x = clamp(anchor.x, padding, window.innerWidth - MENU_WIDTH - padding);
     const y = clamp(anchor.y, padding, window.innerHeight - menuHeight - padding);
 
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
 }
 
+function getCopyText(message) {
+    const payload = parseMessagePayload(message?.message);
+
+    if (payload.type === "reply" || payload.type === "effect" || payload.type === "text") {
+        return String(payload.text || "").trim();
+    }
+
+    return "";
+}
+
+async function writeClipboardText(text) {
+    if (navigator.clipboard?.writeText) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return;
+        } catch (error) {
+            // Fall back to the older copy path below when browser permissions are picky.
+        }
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.style.top = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    const didCopy = document.execCommand("copy");
+
+    textarea.remove();
+
+    if (!didCopy) {
+        throw new Error("copy failed");
+    }
+}
+
 function renderMenu(menu, selectedMessage, callbacks) {
-    const { onDeleteClick, onEditClick, onReplyClick } = callbacks;
+    const { onCopyClick, onDeleteClick, onEditClick, onReplyClick } = callbacks;
     menu.replaceChildren();
 
     const list = document.createElement("div");
     list.className = "message-action-list";
+
+    if (selectedMessage.copyText) {
+        const copyButton = document.createElement("button");
+        copyButton.type = "button";
+        copyButton.className = "message-action-item";
+        copyButton.textContent = "コピー";
+        copyButton.addEventListener("click", () => onCopyClick(copyButton, selectedMessage.copyText));
+
+        list.appendChild(copyButton);
+    }
 
     if (selectedMessage.canReply) {
         const replyButton = document.createElement("button");
@@ -154,6 +205,22 @@ export function setupMessageActions({ onDelete, onEdit, onReply }) {
         close();
     }
 
+    async function copyMessage(button, text) {
+        if (!text) return;
+
+        button.disabled = true;
+
+        try {
+            await writeClipboardText(text);
+            button.textContent = "コピー済み";
+            window.setTimeout(close, 420);
+        } catch (error) {
+            button.disabled = false;
+            button.textContent = "コピー";
+            window.alert("コピーできませんでした");
+        }
+    }
+
     function deleteMessage(message) {
         onDelete(message);
         close();
@@ -164,7 +231,8 @@ export function setupMessageActions({ onDelete, onEdit, onReply }) {
             message,
             canDelete,
             canEdit,
-            canReply
+            canReply,
+            copyText: getCopyText(message)
         };
         ui.layer.hidden = false;
         ui.layer.classList.remove("editing", "mobile");
@@ -174,6 +242,7 @@ export function setupMessageActions({ onDelete, onEdit, onReply }) {
         }
 
         const actionCount = renderMenu(ui.menu, selectedMessage, {
+            onCopyClick: copyMessage,
             onDeleteClick: deleteMessage,
             onEditClick: openEditor,
             onReplyClick: startReply
