@@ -25,9 +25,11 @@ import {
     showMessageHistoryLoading,
     showNewMessageButton,
     updateMessage,
+    updateMessageReactions,
     updateMessageReadReceipts
 } from "./messages.mjs";
 import { setupMessageActions } from "./messageActions.mjs";
+import { setupMessageReactionPicker } from "./messageReactionPicker.mjs";
 import {
     isScreenMessageEffect,
     playScreenEffect,
@@ -433,6 +435,7 @@ function prepareConversationLoading() {
     hideTypingIndicator();
     clearReplyTarget();
     replyThreadPanel.close();
+    reactionPicker.close();
     state.currentMessages = [];
     showMessageHistoryLoading();
 }
@@ -498,6 +501,10 @@ function openReplyThread(message) {
     const thread = collectReplyThread(state.currentMessages, message);
 
     replyThreadPanel.open(thread.length > 0 ? thread : [message]);
+}
+
+function openReactionPicker(message) {
+    reactionPicker.open(message);
 }
 
 function sendCurrentRoomMessage(message) {
@@ -658,6 +665,17 @@ function emitDeleteMessage(message) {
     });
 }
 
+function emitMessageReaction(message, emoji) {
+    if (!message?.id || !state.currentRoom || !state.user || !emoji) return;
+
+    socket.emit("message reaction", {
+        room: state.currentRoom,
+        messageId: message.id,
+        userId: state.user.id,
+        emoji
+    });
+}
+
 function showRoomMenu(panel = "rooms") {
     const previousRoom = state.currentRoom;
 
@@ -665,6 +683,7 @@ function showRoomMenu(panel = "rooms") {
     setAttachmentMenuOpen(false);
     cannedMessagesPanel.close();
     effectSendMenu.close();
+    reactionPicker.close();
     clearReplyTarget();
     state.currentMessages = [];
     state.currentRoom = "";
@@ -999,7 +1018,13 @@ const typing = setupTypingInput({
 const messageActions = setupMessageActions({
     onDelete: emitDeleteMessage,
     onEdit: emitEditMessage,
+    onReact: openReactionPicker,
     onReply: startReply
+});
+
+const reactionPicker = setupMessageReactionPicker({
+    getCurrentUserId: () => state.user?.id || "",
+    onSelect: emitMessageReaction
 });
 
 const effectSendMenu = setupEffectSendMenu({
@@ -1200,6 +1225,7 @@ socket.on("message history", (data) => {
         currentUserId: state.user?.id,
         isDm: isDmRoom(state.currentRoom),
         onOpenMessageActions: messageActions.open,
+        onOpenReactionPicker: openReactionPicker,
         onOpenReplyThread: openReplyThread,
         onJumpToReplySource: jumpToReplySource,
         onSwipeReply: startReply
@@ -1228,6 +1254,7 @@ socket.on("chat message", (data) => {
         isDm: isDmRoom(state.currentRoom),
         shouldAutoScroll: state.shouldAutoScroll,
         onOpenMessageActions: messageActions.open,
+        onOpenReactionPicker: openReactionPicker,
         onOpenReplyThread: openReplyThread,
         onJumpToReplySource: jumpToReplySource,
         onSwipeReply: startReply,
@@ -1254,7 +1281,8 @@ socket.on("message edited", (data) => {
     );
     updateMessage(data, {
         currentUserId: state.user?.id,
-        isDm: isDmRoom(state.currentRoom)
+        isDm: isDmRoom(state.currentRoom),
+        onOpenReactionPicker: openReactionPicker
     });
 });
 
@@ -1269,7 +1297,25 @@ socket.on("message deleted", (data) => {
     );
     updateMessage(data, {
         currentUserId: state.user?.id,
-        isDm: isDmRoom(state.currentRoom)
+        isDm: isDmRoom(state.currentRoom),
+        onOpenReactionPicker: openReactionPicker
+    });
+});
+
+socket.on("message reactions", (data) => {
+    if (data?.room !== state.currentRoom || !data?.messageId) return;
+
+    state.currentMessages = state.currentMessages.map((message) =>
+        String(message.id) === String(data.messageId)
+            ? {
+                ...message,
+                reactions: data.reactions || []
+            }
+            : message
+    );
+    updateMessageReactions(state.currentMessages, {
+        currentUserId: state.user?.id,
+        onOpenReactionPicker: openReactionPicker
     });
 });
 

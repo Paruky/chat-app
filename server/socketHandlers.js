@@ -54,10 +54,55 @@ function attachReadCounts(messages, receipts) {
     }));
 }
 
+function createReactionSummary(reactions) {
+    const grouped = new Map();
+
+    (reactions || []).forEach((reaction) => {
+        if (!reaction?.emoji || !reaction?.userId) return;
+
+        const summary = grouped.get(reaction.emoji) || {
+            emoji: reaction.emoji,
+            count: 0,
+            userIds: []
+        };
+
+        if (!summary.userIds.includes(reaction.userId)) {
+            summary.userIds.push(reaction.userId);
+            summary.count = summary.userIds.length;
+        }
+
+        grouped.set(reaction.emoji, summary);
+    });
+
+    return [...grouped.values()]
+        .sort((left, right) =>
+            right.count - left.count ||
+            left.emoji.localeCompare(right.emoji)
+        );
+}
+
+function getMessageReactions(message, reactions) {
+    const messageId = cleanLastReadMessageId(message?.id);
+
+    if (!messageId) return [];
+
+    return createReactionSummary(
+        reactions.filter((reaction) => reaction.messageId === messageId)
+    );
+}
+
+function attachReactions(messages, reactions) {
+    return (messages || []).map((message) => ({
+        ...message,
+        reactions: getMessageReactions(message, reactions)
+    }));
+}
+
 function registerSocketHandlers(io, dependencies) {
     const {
         roomsRepository,
         messagesRepository,
+        messageReactionsRepository,
         readReceiptsRepository,
         notificationPresence,
         pushNotifications,
@@ -73,13 +118,14 @@ function registerSocketHandlers(io, dependencies) {
         target.emit("room list", rooms);
     }
 
-    async function listMessagesWithReadCounts(room) {
-        const [rows, receipts] = await Promise.all([
+    async function listMessagesWithState(room) {
+        const [rows, receipts, reactions] = await Promise.all([
             messagesRepository.listMessages(room),
-            readReceiptsRepository.listReadReceipts(room)
+            readReceiptsRepository.listReadReceipts(room),
+            messageReactionsRepository.listReactions(room)
         ]);
 
-        return attachReadCounts(rows, receipts);
+        return attachReactions(attachReadCounts(rows, receipts), reactions);
     }
 
     async function emitReadReceipts(room) {
@@ -88,6 +134,18 @@ function registerSocketHandlers(io, dependencies) {
         io.to(room).emit("read receipts", {
             room,
             receipts
+        });
+    }
+
+    async function emitMessageReactions(room, messageId) {
+        const reactions = await messageReactionsRepository.listReactions(room);
+
+        io.to(room).emit("message reactions", {
+            room,
+            messageId,
+            reactions: createReactionSummary(
+                reactions.filter((reaction) => reaction.messageId === messageId)
+            )
         });
     }
 
@@ -115,7 +173,7 @@ function registerSocketHandlers(io, dependencies) {
                 socket.currentRoom = room;
                 socket.currentUserId = userId;
 
-                const rows = await listMessagesWithReadCounts(room);
+                const rows = await listMessagesWithState(room);
                 socket.emit("message history", rows);
 
                 await emitRoomList();
@@ -174,6 +232,38 @@ function registerSocketHandlers(io, dependencies) {
             }
         });
 
+        socket.on("message reaction", async (data = {}) => {
+            const room = cleanRoomName(data.room);
+            const messageId = cleanLastReadMessageId(data.messageId);
+            const userId = cleanUserId(data.userId || socket.currentUserId);
+            const emoji = String(data.emoji || "").trim();
+
+            if (
+                !room ||
+                !messageId ||
+                !userId ||
+                !emoji ||
+                socket.currentRoom !== room
+            ) {
+                return;
+            }
+
+            try {
+                const result = await messageReactionsRepository.toggleReaction({
+                    room,
+                    messageId,
+                    userId,
+                    emoji
+                });
+
+                if (!result) return;
+
+                await emitMessageReactions(room, messageId);
+            } catch (error) {
+                logSocketError("message-reaction", error);
+            }
+        });
+
         socket.on("delete dm room", async (data = {}) => {
             const room = cleanRoomName(data.room);
 
@@ -227,7 +317,8 @@ function registerSocketHandlers(io, dependencies) {
 
                 io.to(room).emit("chat message", {
                     ...insertedMessage,
-                    readCount: 0
+                    readCount: 0,
+                    reactions: []
                 });
 
                 socket.broadcast.emit("new message notification", {

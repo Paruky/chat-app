@@ -7,7 +7,7 @@ The real reason is also simple: it makes the app feel cooler.
 
 ## Current Version
 
-Alpha 1.11
+Alpha 1.12
 
 ## Rules
 
@@ -25,6 +25,7 @@ Alpha 1.11
 - `Alpha 1.9` added canned messages with shared presets and account-scoped custom phrases.
 - `Alpha 1.10` added loading screen in message loading.
 - `Alpha 1.11` fixed the version badge being selected while opening the message action menu.
+- `Alpha 1.12` added emoji reactions from the message action menu and reaction pills.
 - Raise the major number when the update feels big.
 - Raise the minor number for smaller updates and bug fixes.
 - There is no strict corporate-style line. Coolness and update feeling matter.

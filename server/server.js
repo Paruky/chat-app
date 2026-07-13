@@ -5,6 +5,7 @@ const { readConfig, validateConfig } = require("./config");
 const { createSupabaseClient } = require("./supabase");
 const { createRoomsRepository } = require("./repositories/roomsRepository");
 const { createMessagesRepository } = require("./repositories/messagesRepository");
+const { createMessageReactionsRepository } = require("./repositories/messageReactionsRepository");
 const { createPushSubscriptionsRepository } = require("./repositories/pushSubscriptionsRepository");
 const { createReadReceiptsRepository } = require("./repositories/readReceiptsRepository");
 const { createVersionHistoryRepository } = require("./repositories/versionHistoryRepository");
@@ -44,6 +45,7 @@ function createServer() {
     registerSocketHandlers(io, {
         roomsRepository: createRoomsRepository(supabase),
         messagesRepository: createMessagesRepository(supabase),
+        messageReactionsRepository: createMessageReactionsRepository(supabase),
         readReceiptsRepository: createReadReceiptsRepository(supabase),
         notificationPresence,
         pushNotifications,

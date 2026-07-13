@@ -293,6 +293,49 @@ body {
     color: var(--text-sub);
 }
 
+.message-reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.message-reaction-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    min-height: 28px;
+    padding: 4px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+
+    background: rgba(255, 255, 255, 0.11);
+    color: inherit;
+
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.message-reaction-pill.active {
+    border-color: rgba(255, 255, 255, 0.52);
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.message-reaction-count {
+    opacity: 0.82;
+    font-size: 11px;
+}
+
+.emoji-message .message-reaction-pill,
+.emoji-message.my-message .message-reaction-pill,
+.deleted-message .message-reaction-pill {
+    border-color: var(--border);
+    background: var(--bg-card);
+    color: var(--text-main);
+}
+
 .my-message * {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -1556,6 +1599,81 @@ textarea {
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+.message-reaction-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 520;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.message-reaction-layer[hidden] {
+    display: none;
+}
+
+.message-reaction-scrim {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgba(0, 0, 0, 0.26);
+    cursor: default;
+}
+
+.message-reaction-panel {
+    position: fixed;
+    left: 50%;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    width: min(360px, calc(100vw - 32px));
+    transform: translateX(-50%);
+
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+
+    background: rgba(34, 34, 34, 0.98);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(18px);
+}
+
+.message-reaction-title {
+    margin: 2px 4px 10px;
+    color: var(--text-sub);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.message-reaction-options {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.message-reaction-option {
+    aspect-ratio: 1;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+
+    font-size: 28px;
+    line-height: 1;
+}
+
+.message-reaction-option.active {
+    border-color: var(--accent-hover);
+    background: color-mix(in srgb, var(--accent) 24%, rgba(255, 255, 255, 0.08));
+}
+
+.message-reaction-option:hover {
+    background: rgba(255, 255, 255, 0.14);
 }
 
 .message-edit-title {

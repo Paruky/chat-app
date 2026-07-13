@@ -84,7 +84,7 @@ async function writeClipboardText(text) {
 }
 
 function renderMenu(menu, selectedMessage, callbacks) {
-    const { onCopyClick, onDeleteClick, onEditClick, onReplyClick } = callbacks;
+    const { onCopyClick, onDeleteClick, onEditClick, onReactClick, onReplyClick } = callbacks;
     menu.replaceChildren();
 
     const list = document.createElement("div");
@@ -108,6 +108,16 @@ function renderMenu(menu, selectedMessage, callbacks) {
         replyButton.addEventListener("click", () => onReplyClick(selectedMessage.message));
 
         list.appendChild(replyButton);
+    }
+
+    if (selectedMessage.canReact) {
+        const reactButton = document.createElement("button");
+        reactButton.type = "button";
+        reactButton.className = "message-action-item";
+        reactButton.textContent = "リアクション";
+        reactButton.addEventListener("click", () => onReactClick(selectedMessage.message));
+
+        list.appendChild(reactButton);
     }
 
     if (selectedMessage.canEdit) {
@@ -177,7 +187,7 @@ function renderEditor(editor, message, callbacks) {
     });
 }
 
-export function setupMessageActions({ onDelete, onEdit, onReply }) {
+export function setupMessageActions({ onDelete, onEdit, onReact, onReply }) {
     const ui = createActionLayer();
     let selectedMessage = null;
 
@@ -205,6 +215,11 @@ export function setupMessageActions({ onDelete, onEdit, onReply }) {
         close();
     }
 
+    function startReaction(message) {
+        onReact(message);
+        close();
+    }
+
     async function copyMessage(button, text) {
         if (!text) return;
 
@@ -226,11 +241,12 @@ export function setupMessageActions({ onDelete, onEdit, onReply }) {
         close();
     }
 
-    function open({ message, anchor, source, canDelete = false, canEdit = false, canReply = true }) {
+    function open({ message, anchor, source, canDelete = false, canEdit = false, canReact = true, canReply = true }) {
         selectedMessage = {
             message,
             canDelete,
             canEdit,
+            canReact,
             canReply,
             copyText: getCopyText(message)
         };
@@ -245,6 +261,7 @@ export function setupMessageActions({ onDelete, onEdit, onReply }) {
             onCopyClick: copyMessage,
             onDeleteClick: deleteMessage,
             onEditClick: openEditor,
+            onReactClick: startReaction,
             onReplyClick: startReply
         });
 

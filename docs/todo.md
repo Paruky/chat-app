@@ -16,7 +16,6 @@
 ## Messages
 
 - Consider stamp
-- Consider reactions.
 - Consider message delete.
 
 ## Notifications

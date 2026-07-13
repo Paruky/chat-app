@@ -86,6 +86,74 @@ function getReadCount(message) {
     return Number.isFinite(count) && count > 0 ? count : 0;
 }
 
+function normalizeReactions(message) {
+    return (Array.isArray(message?.reactions) ? message.reactions : [])
+        .map((reaction) => ({
+            emoji: String(reaction?.emoji || "").trim(),
+            count: Number.parseInt(String(reaction?.count || 0), 10),
+            userIds: Array.isArray(reaction?.userIds)
+                ? reaction.userIds.map((userId) => String(userId || ""))
+                : []
+        }))
+        .filter((reaction) => reaction.emoji && reaction.count > 0);
+}
+
+function createReactionBar(message, { currentUserId, onOpenReactionPicker }) {
+    const reactions = normalizeReactions(message);
+    const payload = parseMessagePayload(message?.message);
+
+    if (payload.type === "deleted" || reactions.length === 0 || !onOpenReactionPicker) {
+        return null;
+    }
+
+    const bar = document.createElement("div");
+    bar.className = "message-reactions";
+
+    reactions.forEach((reaction) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "message-reaction-pill";
+        button.classList.toggle("active", reaction.userIds.includes(currentUserId));
+        button.setAttribute("aria-label", `${reaction.emoji} リアクション ${reaction.count}件`);
+
+        const emoji = document.createElement("span");
+        emoji.className = "message-reaction-emoji";
+        emoji.textContent = reaction.emoji;
+
+        const count = document.createElement("span");
+        count.className = "message-reaction-count";
+        count.textContent = String(reaction.count);
+
+        button.append(emoji, count);
+        button.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onOpenReactionPicker(message);
+        });
+
+        bar.appendChild(button);
+    });
+
+    return bar;
+}
+
+function syncReactionBarElement(item, message, options) {
+    item.querySelector(".message-reactions")?.remove();
+
+    const bar = createReactionBar(message, options);
+
+    if (!bar) return;
+
+    const readReceipt = item.querySelector(".message-read-receipt");
+
+    if (readReceipt) {
+        item.insertBefore(bar, readReceipt);
+        return;
+    }
+
+    item.appendChild(bar);
+}
+
 function createReadReceiptElement(message, { currentUserId, isDm }) {
     const payload = parseMessagePayload(message?.message);
     const isOwnMessage = message?.userId && message.userId === currentUserId;
@@ -151,6 +219,7 @@ function enableMessageActions(item, data, onOpenMessageActions, actionState) {
         return {
             canDelete: actionState.canDelete && !isDeleted,
             canEdit: actionState.canEdit && !isDeleted,
+            canReact: actionState.canReact && !isDeleted,
             canReply: actionState.canReply && !isDeleted
         };
     }
@@ -160,7 +229,12 @@ function enableMessageActions(item, data, onOpenMessageActions, actionState) {
 
         const currentActionState = getCurrentActionState();
 
-        if (!currentActionState.canDelete && !currentActionState.canEdit && !currentActionState.canReply) {
+        if (
+            !currentActionState.canDelete &&
+            !currentActionState.canEdit &&
+            !currentActionState.canReact &&
+            !currentActionState.canReply
+        ) {
             return;
         }
 
@@ -169,6 +243,7 @@ function enableMessageActions(item, data, onOpenMessageActions, actionState) {
             message: item.messageData,
             canDelete: currentActionState.canDelete,
             canEdit: currentActionState.canEdit,
+            canReact: currentActionState.canReact,
             canReply: currentActionState.canReply,
             source: "contextmenu",
             anchor: {
@@ -192,7 +267,12 @@ function enableMessageActions(item, data, onOpenMessageActions, actionState) {
         longPressTimer = setTimeout(() => {
             const currentActionState = getCurrentActionState();
 
-            if (!currentActionState.canDelete && !currentActionState.canEdit && !currentActionState.canReply) {
+            if (
+                !currentActionState.canDelete &&
+                !currentActionState.canEdit &&
+                !currentActionState.canReact &&
+                !currentActionState.canReply
+            ) {
                 return;
             }
 
@@ -201,6 +281,7 @@ function enableMessageActions(item, data, onOpenMessageActions, actionState) {
                 message: item.messageData,
                 canDelete: currentActionState.canDelete,
                 canEdit: currentActionState.canEdit,
+                canReact: currentActionState.canReact,
                 canReply: currentActionState.canReply,
                 source: "longpress",
                 anchor: {
@@ -630,6 +711,7 @@ function createMessageElement(data, options) {
         currentUserId,
         isDm = false,
         onOpenMessageActions,
+        onOpenReactionPicker,
         onOpenReplyThread,
         onJumpToReplySource,
         onSwipeReply
@@ -676,6 +758,7 @@ function createMessageElement(data, options) {
         enableMessageActions(item, data, onOpenMessageActions, {
             canDelete: isOwnMessage && !isDeletedMessage,
             canEdit: isOwnMessage && payload.type === "text",
+            canReact: !isDeletedMessage,
             canReply: !isDeletedMessage
         });
     }
@@ -724,6 +807,7 @@ function createMessageElement(data, options) {
     content.append(createMessageBody(payload));
     header.append(avatar, content);
     item.appendChild(header);
+    syncReactionBarElement(item, data, { currentUserId, onOpenReactionPicker });
     syncReadReceiptElement(item, data, { currentUserId, isDm });
 
     return item;
@@ -732,6 +816,10 @@ function createMessageElement(data, options) {
 export function updateMessage(data, options = {}) {
     if (!data?.id) return;
 
+    const {
+        currentUserId,
+        onOpenReactionPicker
+    } = options;
     const item = [...elements.messages.querySelectorAll(".message")]
         .find((message) => message.dataset.messageId === String(data.id));
     const body = item?.querySelector(".message-body");
@@ -755,8 +843,29 @@ export function updateMessage(data, options = {}) {
         applyEmojiPresentation(item, payload);
         applyEffectPresentation(item, payload);
         body.replaceWith(createMessageBody(payload));
+        syncReactionBarElement(item, item.messageData, {
+            currentUserId,
+            onOpenReactionPicker
+        });
         syncReadReceiptElement(item, item.messageData, options);
     }
+}
+
+export function updateMessageReactions(messages, options = {}) {
+    (messages || []).forEach((message) => {
+        if (!message?.id) return;
+
+        const item = [...elements.messages.querySelectorAll(".message")]
+            .find((element) => element.dataset.messageId === String(message.id));
+
+        if (!item) return;
+
+        item.messageData = {
+            ...item.messageData,
+            ...message
+        };
+        syncReactionBarElement(item, item.messageData, options);
+    });
 }
 
 export function updateMessageReadReceipts(messages, options = {}) {
@@ -784,6 +893,7 @@ export function appendMessage(data, options) {
         trackUnread = true,
         onUnread,
         onOpenMessageActions,
+        onOpenReactionPicker,
         onOpenReplyThread,
         onJumpToReplySource,
         onSwipeReply
@@ -797,6 +907,7 @@ export function appendMessage(data, options) {
         currentUserId,
         isDm,
         onOpenMessageActions,
+        onOpenReactionPicker,
         onOpenReplyThread,
         onJumpToReplySource,
         onSwipeReply
@@ -817,6 +928,7 @@ export function renderMessageHistory(messages, options) {
         currentUserId,
         isDm = false,
         onOpenMessageActions,
+        onOpenReactionPicker,
         onOpenReplyThread,
         onJumpToReplySource,
         onSwipeReply
@@ -832,6 +944,7 @@ export function renderMessageHistory(messages, options) {
             shouldAutoScroll: false,
             trackUnread: false,
             onOpenMessageActions,
+            onOpenReactionPicker,
             onOpenReplyThread,
             onJumpToReplySource,
             onSwipeReply,
