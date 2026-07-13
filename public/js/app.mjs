@@ -90,7 +90,10 @@ import {
 import { setupVersionHistoryPage } from "./versionHistory.mjs";
 import { APP_VERSION } from "./version.mjs";
 
-const socket = window.io(SOCKET_OPTIONS);
+const socket = window.io({
+    ...SOCKET_OPTIONS,
+    autoConnect: false
+});
 const supabaseClient = window.supabase.createClient(
     SUPABASE_CONFIG.url,
     SUPABASE_CONFIG.publishableKey
@@ -98,6 +101,7 @@ const supabaseClient = window.supabase.createClient(
 
 const state = {
     user: null,
+    accessToken: "",
     currentRoom: "",
     rooms: [],
     hiddenDmRooms: loadHiddenDmRooms(),
@@ -124,6 +128,34 @@ const state = {
 setAppVersion(APP_VERSION);
 applySettings(state.settings);
 setupForegroundNotificationVibration();
+
+async function refreshAccessToken() {
+    const {
+        data: { session }
+    } = await supabaseClient.auth.getSession();
+
+    state.accessToken = session?.access_token || "";
+    socket.auth = {
+        accessToken: state.accessToken
+    };
+
+    return state.accessToken;
+}
+
+async function getAccessToken() {
+    if (state.accessToken) return state.accessToken;
+
+    return refreshAccessToken();
+}
+
+async function connectAuthenticatedSocket() {
+    const accessToken = await getAccessToken();
+
+    if (!accessToken || socket.connected) return;
+
+    socket.auth = { accessToken };
+    socket.connect();
+}
 
 function encodeRoomRoute(room) {
     return encodeURIComponent(room);
@@ -833,10 +865,14 @@ async function togglePushNotifications() {
 
     try {
         if (state.notificationStatus.subscribed) {
-            await unsubscribeFromNotifications();
+            await unsubscribeFromNotifications(await getAccessToken());
             syncNotificationSetting(false);
         } else {
-            await subscribeToNotifications(state.user?.id, getCurrentAccount());
+            await subscribeToNotifications(
+                state.user?.id,
+                getCurrentAccount(),
+                await getAccessToken()
+            );
             syncNotificationSetting(true);
         }
 
@@ -962,6 +998,8 @@ async function login() {
 }
 
 async function checkUser() {
+    await refreshAccessToken();
+
     const {
         data: { user },
         error
@@ -982,6 +1020,7 @@ async function checkUser() {
     setUserBar(profile);
     setLoading(false);
     refreshNotificationStatus();
+    await connectAuthenticatedSocket();
 
     const savedRoom = cleanText(loadLastRoom(), LIMITS.roomName);
 
@@ -1075,7 +1114,8 @@ const settingsPanel = setupSettingsPanel({
 });
 
 const versionHistoryPage = setupVersionHistoryPage({
-    elements
+    elements,
+    getAccessToken
 });
 
 elements.messages.addEventListener("scroll", () => {
@@ -1218,6 +1258,16 @@ socket.on("disconnect", () => {
     hideTypingIndicator();
 });
 
+socket.on("connect_error", async (error) => {
+    if (!/auth/i.test(error?.message || "")) return;
+
+    await refreshAccessToken();
+
+    if (state.accessToken && state.user && !socket.connected) {
+        socket.connect();
+    }
+});
+
 socket.on("message history", (data) => {
     state.currentMessages = data || [];
     resetVisibleUnread();
@@ -1335,6 +1385,13 @@ socket.on("stop typing", hideTypingIndicator);
 
 socket.on("server error", (data) => {
     console.warn(data?.message || "server error");
+});
+
+supabaseClient.auth.onAuthStateChange((_event, session) => {
+    state.accessToken = session?.access_token || "";
+    socket.auth = {
+        accessToken: state.accessToken
+    };
 });
 
 window.addEventListener("load", async () => {

@@ -26,6 +26,10 @@ Alpha 1.12
 - `Alpha 1.10` added loading screen in message loading.
 - `Alpha 1.11` fixed the version badge being selected while opening the message action menu.
 - `Alpha 1.12` added emoji reactions from the message action menu and reaction pills.
+- Move from `Alpha 1.12` to `Ver 1.0` only after the production Supabase tables
+  have RLS enabled, public table grants revoked, Render uses
+  `SUPABASE_SERVICE_ROLE_KEY`, and Security Advisors no longer report public RLS
+  errors.
 - Raise the major number when the update feels big.
 - Raise the minor number for smaller updates and bug fixes.
 - There is no strict corporate-style line. Coolness and update feeling matter.

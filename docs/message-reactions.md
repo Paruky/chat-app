@@ -18,12 +18,11 @@ create table if not exists message_reactions (
 
 create index if not exists message_reactions_room_message_idx
   on message_reactions(room, message_id);
-
-alter table message_reactions disable row level security;
-
-grant select, insert, update, delete on table message_reactions
-  to anon, authenticated;
 ```
+
+After creating the table, apply the production RLS setup in
+`docs/security-rls.md`. Reactions are written by the app server after the Socket
+connection has been authenticated.
 
 If the table is missing or blocked by permissions, the server falls back to
 memory for the current process only.

@@ -17,12 +17,11 @@ create table if not exists read_receipts (
 
 create index if not exists read_receipts_room_idx
   on read_receipts(room);
-
-alter table read_receipts disable row level security;
-
-grant select, insert, update, delete on table read_receipts
-  to anon, authenticated;
 ```
+
+After creating the table, apply the production RLS setup in
+`docs/security-rls.md`. Read receipts are written by the app server, not directly
+by browser clients.
 
 If the table is missing or blocked by permissions, the server falls back to
 memory for the current process only.

@@ -209,7 +209,7 @@ function createPushNotificationService(config, subscriptionsRepository, options 
     };
 }
 
-function registerPushRoutes(app, pushNotifications) {
+function registerPushRoutes(app, pushNotifications, requireUser = (request, response, next) => next()) {
     app.get("/api/push/public-key", (request, response) => {
         response.json({
             enabled: pushNotifications.enabled,
@@ -217,8 +217,10 @@ function registerPushRoutes(app, pushNotifications) {
         });
     });
 
-    app.post("/api/push/subscribe", async (request, response) => {
-        const { userId, accountName, subscription } = request.body || {};
+    app.post("/api/push/subscribe", requireUser, async (request, response) => {
+        const { accountName, subscription } = request.body || {};
+        const userId = request.authUser?.id || "";
+        const safeAccountName = request.authUser?.accountName || accountName || "";
 
         if (!userId || !subscription?.endpoint) {
             response.status(400).json({
@@ -231,7 +233,7 @@ function registerPushRoutes(app, pushNotifications) {
         try {
             const result = await pushNotifications.saveSubscription({
                 userId,
-                accountName,
+                accountName: safeAccountName,
                 subscription
             });
             response.status(result.ok ? 200 : 503).json(result);
@@ -243,7 +245,7 @@ function registerPushRoutes(app, pushNotifications) {
         }
     });
 
-    app.post("/api/push/unsubscribe", async (request, response) => {
+    app.post("/api/push/unsubscribe", requireUser, async (request, response) => {
         try {
             await pushNotifications.deleteSubscription(request.body?.subscription);
             response.json({

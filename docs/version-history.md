@@ -17,15 +17,11 @@ create table if not exists version_history (
 
 create index if not exists version_history_created_at_idx
   on version_history(created_at desc);
-
-alter table version_history disable row level security;
-
-grant select, insert, update, delete on table version_history
-  to anon, authenticated;
-
-grant usage, select on sequence version_history_id_seq
-  to anon, authenticated;
 ```
+
+After creating the table, apply the production RLS setup in
+`docs/security-rls.md`. Do not grant public browser roles direct write access to
+this table.
 
 If the table is missing or blocked by permissions, the server falls back to
 memory for the current process only. After the table permissions are fixed, the

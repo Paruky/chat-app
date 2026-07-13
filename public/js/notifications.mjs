@@ -114,7 +114,13 @@ export async function getNotificationStatus() {
     };
 }
 
-export async function subscribeToNotifications(userId, accountName = "") {
+function createAuthHeaders(accessToken) {
+    return accessToken
+        ? { Authorization: `Bearer ${accessToken}` }
+        : {};
+}
+
+export async function subscribeToNotifications(userId, accountName = "", accessToken = "") {
     if (!userId) {
         throw new Error("ログイン後に通知をオンにできます");
     }
@@ -145,7 +151,8 @@ export async function subscribeToNotifications(userId, accountName = "") {
     const response = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            ...createAuthHeaders(accessToken)
         },
         body: JSON.stringify({
             userId,
@@ -161,7 +168,7 @@ export async function subscribeToNotifications(userId, accountName = "") {
     return subscription;
 }
 
-export async function unsubscribeFromNotifications() {
+export async function unsubscribeFromNotifications(accessToken = "") {
     const subscription = await getCurrentSubscription();
 
     if (!subscription) return;
@@ -169,7 +176,8 @@ export async function unsubscribeFromNotifications() {
     await fetch("/api/push/unsubscribe", {
         method: "POST",
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            ...createAuthHeaders(accessToken)
         },
         body: JSON.stringify({
             subscription

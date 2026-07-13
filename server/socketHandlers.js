@@ -14,6 +14,14 @@ function cleanUserId(value) {
     return String(value || "").trim().slice(0, 160);
 }
 
+function getAccountKey(value) {
+    return String(value || "")
+        .trim()
+        .replace(/^@+/, "")
+        .replace(/\s+/g, "")
+        .toLowerCase();
+}
+
 function cleanLastReadMessageId(value) {
     const id = Number.parseInt(String(value || ""), 10);
 
@@ -26,6 +34,52 @@ function logSocketError(action, error) {
 
 function isDmRoom(room) {
     return String(room || "").startsWith("dm:");
+}
+
+function parseDmRoom(room) {
+    if (!isDmRoom(room)) return [];
+
+    const parts = String(room)
+        .slice(3)
+        .split(":")
+        .map(getAccountKey)
+        .filter(Boolean);
+
+    return parts.length >= 3 ? parts.slice(1, 3) : parts;
+}
+
+function accountKeysMatch(left, right) {
+    const leftKey = getAccountKey(left);
+    const rightKey = getAccountKey(right);
+
+    return Boolean(leftKey && rightKey) &&
+        (leftKey === rightKey ||
+            leftKey.startsWith(rightKey) ||
+            rightKey.startsWith(leftKey));
+}
+
+function canAccessRoom(user, room) {
+    if (!isDmRoom(room)) return true;
+
+    const users = parseDmRoom(room);
+
+    return users.length === 2 &&
+        users.some((accountName) => accountKeysMatch(accountName, user?.accountKey));
+}
+
+function getSocketProfile(socket) {
+    const user = socket.authUser || {};
+
+    return {
+        userId: cleanUserId(user.id),
+        accountKey: getAccountKey(user.accountKey || user.accountName),
+        name: cleanRoomNameFallback(user.name),
+        avatarUrl: String(user.avatarUrl || "").trim()
+    };
+}
+
+function cleanRoomNameFallback(value) {
+    return String(value || "").trim().slice(0, 160) || "ユーザー";
 }
 
 function createDeletedMessagePayload(deletedBy) {
@@ -158,9 +212,9 @@ function registerSocketHandlers(io, dependencies) {
 
         socket.on("join room", async (data = {}) => {
             const room = cleanRoomName(data.room);
-            const userId = cleanUserId(data.userId);
+            const userId = cleanUserId(socket.authUser?.id);
 
-            if (!room) return;
+            if (!room || !userId || !canAccessRoom(socket.authUser, room)) return;
 
             try {
                 await roomsRepository.saveRoom(room);
@@ -199,7 +253,7 @@ function registerSocketHandlers(io, dependencies) {
 
         socket.on("notification presence", (data = {}) => {
             notificationPresence?.update(socket.id, {
-                userId: data.userId,
+                userId: socket.authUser?.id || "",
                 endpoint: data.endpoint,
                 room: cleanRoomName(data.room),
                 visible: data.visible === true
@@ -208,7 +262,7 @@ function registerSocketHandlers(io, dependencies) {
 
         socket.on("read messages", async (data = {}) => {
             const room = cleanRoomName(data.room);
-            const userId = cleanUserId(data.userId || socket.currentUserId);
+            const userId = cleanUserId(socket.authUser?.id);
             const lastReadMessageId = cleanLastReadMessageId(data.lastReadMessageId);
 
             if (
@@ -235,7 +289,7 @@ function registerSocketHandlers(io, dependencies) {
         socket.on("message reaction", async (data = {}) => {
             const room = cleanRoomName(data.room);
             const messageId = cleanLastReadMessageId(data.messageId);
-            const userId = cleanUserId(data.userId || socket.currentUserId);
+            const userId = cleanUserId(socket.authUser?.id);
             const emoji = String(data.emoji || "").trim();
 
             if (
@@ -267,7 +321,7 @@ function registerSocketHandlers(io, dependencies) {
         socket.on("delete dm room", async (data = {}) => {
             const room = cleanRoomName(data.room);
 
-            if (!room || !isDmRoom(room)) return;
+            if (!room || !isDmRoom(room) || !canAccessRoom(socket.authUser, room)) return;
 
             try {
                 await roomsRepository.deleteRoom(room);
@@ -282,20 +336,21 @@ function registerSocketHandlers(io, dependencies) {
 
         socket.on("typing", (data = {}) => {
             const room = cleanRoomName(data.room);
+            const profile = getSocketProfile(socket);
 
-            if (!room) return;
+            if (!room || socket.currentRoom !== room) return;
 
             socket.to(room).emit("typing", {
                 room,
-                name: cleanRoomName(data.name) || "ユーザー",
-                avatar_url: data.avatar_url || ""
+                name: profile.name,
+                avatar_url: profile.avatarUrl
             });
         });
 
         socket.on("stop typing", (data = {}) => {
             const room = cleanRoomName(data.room);
 
-            if (!room) return;
+            if (!room || socket.currentRoom !== room) return;
 
             socket.to(room).emit("stop typing");
         });
@@ -303,16 +358,17 @@ function registerSocketHandlers(io, dependencies) {
         socket.on("chat message", async (data = {}) => {
             const room = cleanRoomName(data.room);
             const message = cleanMessage(data.message);
+            const profile = getSocketProfile(socket);
 
-            if (!room || !message) return;
+            if (!room || !message || socket.currentRoom !== room || !profile.userId) return;
 
             try {
                 const insertedMessage = await messagesRepository.createMessage({
                     room,
-                    userId: data.userId || "",
-                    name: cleanRoomName(data.name) || "ユーザー",
+                    userId: profile.userId,
+                    name: profile.name,
                     message,
-                    avatar_url: data.avatar_url || ""
+                    avatar_url: profile.avatarUrl
                 });
 
                 io.to(room).emit("chat message", {
@@ -323,7 +379,7 @@ function registerSocketHandlers(io, dependencies) {
 
                 socket.broadcast.emit("new message notification", {
                     room,
-                    userId: data.userId || ""
+                    userId: profile.userId
                 });
 
                 pushNotifications
@@ -340,10 +396,10 @@ function registerSocketHandlers(io, dependencies) {
         socket.on("edit message", async (data = {}) => {
             const id = cleanMessageId(data.id);
             const room = cleanRoomName(data.room);
-            const userId = String(data.userId || "");
+            const userId = cleanUserId(socket.authUser?.id);
             const message = cleanMessage(data.message);
 
-            if (!id || !room || !userId || !message) return;
+            if (!id || !room || !userId || !message || socket.currentRoom !== room) return;
 
             try {
                 const updatedMessage = await messagesRepository.updateMessage({
@@ -365,10 +421,10 @@ function registerSocketHandlers(io, dependencies) {
         socket.on("delete message", async (data = {}) => {
             const id = cleanMessageId(data.id);
             const room = cleanRoomName(data.room);
-            const userId = String(data.userId || "");
-            const deletedBy = cleanRoomName(data.name) || "ユーザー";
+            const userId = cleanUserId(socket.authUser?.id);
+            const deletedBy = getSocketProfile(socket).name;
 
-            if (!id || !room || !userId) return;
+            if (!id || !room || !userId || socket.currentRoom !== room) return;
 
             try {
                 const deletedMessage = await messagesRepository.deleteMessage({

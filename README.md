@@ -37,6 +37,14 @@
 - npm install
 - npm run dev
 
+## セキュリティ設定
+
+- ブラウザ側は Supabase の publishable key をログインだけに使う
+- DB 操作は Express/Socket.IO サーバー経由にする
+- Render には `SUPABASE_SERVICE_ROLE_KEY` を設定する
+- Supabase の public テーブルは `docs/security-rls.md` の SQL で RLS を有効化する
+- バージョン履歴の編集者は `VERSION_HISTORY_EDITOR_ACCOUNTS` または `VERSION_HISTORY_EDITOR_USER_IDS` で制限する
+
 ## 使用サービス
 
 - Supabase realtime

@@ -37,6 +37,10 @@ create index if not exists push_subscriptions_account_name_idx
   on push_subscriptions(account_name);
 ```
 
+After creating the table, apply the production RLS setup in
+`docs/security-rls.md`. The browser registers subscriptions through
+`/api/push/subscribe`; it should not write this table directly.
+
 ## iPhone test flow
 
 1. Deploy the app with the VAPID environment variables.

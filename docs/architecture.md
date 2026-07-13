@@ -5,6 +5,7 @@
 - `server/server.js` starts the app.
 - `server/config.js` reads environment settings.
 - `server/supabase.js` creates the Supabase client.
+- `server/auth.js` verifies Supabase access tokens and owns server-side user identity.
 - `server/repositories/` keeps database access in one place.
 - `server/pushNotifications.js` owns Web Push setup, API routes, and notification sending.
 - `server/versionHistoryRoutes.js` owns the version history API.
@@ -27,6 +28,9 @@
 2. Add realtime events in `server/socketHandlers.js`.
 3. Add browser behavior in a focused file under `public/js/`.
 4. Wire the new feature from `public/js/app.mjs`.
+5. Keep persistent writes server-side. Browser clients may authenticate with
+   Supabase, but chat tables should stay behind the app server and RLS setup in
+   `docs/security-rls.md`.
 
 Before pushing a visible update, check `docs/versioning.md` and update the version when it feels right.
 
@@ -38,3 +42,4 @@ Before pushing a visible update, check `docs/versioning.md` and update the versi
 - Add basic automated browser checks once the app has stable test data.
 - Keep the `message_reactions` table available in Supabase for persistent emoji reactions.
 - Keep the `read_receipts` table available in Supabase for persistent read receipts.
+- Keep RLS enabled on every public Supabase table.

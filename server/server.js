@@ -3,6 +3,12 @@ const http = require("http");
 const { Server } = require("socket.io");
 const { readConfig, validateConfig } = require("./config");
 const { createSupabaseClient } = require("./supabase");
+const {
+    createAuthService,
+    createRequireUser,
+    createRequireVersionHistoryEditor,
+    registerSocketAuth
+} = require("./auth");
 const { createRoomsRepository } = require("./repositories/roomsRepository");
 const { createMessagesRepository } = require("./repositories/messagesRepository");
 const { createMessageReactionsRepository } = require("./repositories/messageReactionsRepository");
@@ -28,6 +34,9 @@ function createServer() {
         maxHttpBufferSize: Math.max(config.maxMessageLength + 200000, 1000000)
     });
     const supabase = createSupabaseClient(config);
+    const authService = createAuthService(supabase);
+    const requireUser = createRequireUser(authService);
+    const requireVersionHistoryEditor = createRequireVersionHistoryEditor(config);
     const notificationPresence = createNotificationPresence();
     const pushNotifications = createPushNotificationService(
         config,
@@ -39,9 +48,17 @@ function createServer() {
 
     app.use(express.json({ limit: "1mb" }));
     app.use(express.static(config.publicDir));
-    registerPushRoutes(app, pushNotifications);
-    registerVersionHistoryRoutes(app, createVersionHistoryRepository(supabase));
+    registerPushRoutes(app, pushNotifications, requireUser);
+    registerVersionHistoryRoutes(
+        app,
+        createVersionHistoryRepository(supabase),
+        {
+            requireUser,
+            requireVersionHistoryEditor
+        }
+    );
 
+    registerSocketAuth(io, authService);
     registerSocketHandlers(io, {
         roomsRepository: createRoomsRepository(supabase),
         messagesRepository: createMessagesRepository(supabase),

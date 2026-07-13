@@ -17,11 +17,19 @@ function formatDate(value) {
     }).format(date);
 }
 
-async function requestJson(url, options = {}) {
+function createAuthHeaders(accessToken) {
+    return accessToken
+        ? { Authorization: `Bearer ${accessToken}` }
+        : {};
+}
+
+async function requestJson(url, options = {}, getAccessToken = null) {
+    const accessToken = getAccessToken ? await getAccessToken() : "";
     const response = await fetch(url, {
         ...options,
         headers: {
             "Content-Type": "application/json",
+            ...createAuthHeaders(accessToken),
             ...(options.headers || {})
         }
     });
@@ -33,30 +41,30 @@ async function requestJson(url, options = {}) {
     return response.json();
 }
 
-async function listEntries() {
-    const data = await requestJson("/api/version-history");
+async function listEntries(getAccessToken) {
+    const data = await requestJson("/api/version-history", {}, getAccessToken);
 
     return data.entries || [];
 }
 
-async function createEntry(entry) {
+async function createEntry(entry, getAccessToken) {
     return requestJson("/api/version-history", {
         method: "POST",
         body: JSON.stringify(entry)
-    });
+    }, getAccessToken);
 }
 
-async function updateEntry(id, entry) {
+async function updateEntry(id, entry, getAccessToken) {
     return requestJson(`/api/version-history/${encodeURIComponent(id)}`, {
         method: "PUT",
         body: JSON.stringify(entry)
-    });
+    }, getAccessToken);
 }
 
-async function deleteEntry(id) {
+async function deleteEntry(id, getAccessToken) {
     return requestJson(`/api/version-history/${encodeURIComponent(id)}`, {
         method: "DELETE"
-    });
+    }, getAccessToken);
 }
 
 function createEmptyState(message) {
@@ -113,6 +121,7 @@ function createEntryElement(entry, options) {
 
 export function setupVersionHistoryPage(options) {
     const { elements } = options;
+    const getAccessToken = options.getAccessToken || (async () => "");
     const state = {
         entries: [],
         editingId: "",
@@ -156,7 +165,7 @@ export function setupVersionHistoryPage(options) {
     }
 
     async function refresh() {
-        state.entries = await listEntries();
+        state.entries = await listEntries(getAccessToken);
         state.hasLoaded = true;
         render();
     }
@@ -179,7 +188,7 @@ export function setupVersionHistoryPage(options) {
 
         if (!confirmed) return;
 
-        await deleteEntry(entry.id);
+        await deleteEntry(entry.id, getAccessToken);
         await refresh();
     }
 
@@ -201,9 +210,9 @@ export function setupVersionHistoryPage(options) {
 
         try {
             if (state.editingId) {
-                await updateEntry(state.editingId, entry);
+                await updateEntry(state.editingId, entry, getAccessToken);
             } else {
-                await createEntry(entry);
+                await createEntry(entry, getAccessToken);
             }
 
             resetForm();
