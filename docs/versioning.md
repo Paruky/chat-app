@@ -7,7 +7,7 @@ The real reason is also simple: it makes the app feel cooler.
 
 ## Current Version
 
-Alpha 1.12
+Ver 1.0
 
 ## Rules
 
@@ -26,14 +26,14 @@ Alpha 1.12
 - `Alpha 1.10` added loading screen in message loading.
 - `Alpha 1.11` fixed the version badge being selected while opening the message action menu.
 - `Alpha 1.12` added emoji reactions from the message action menu and reaction pills.
-- Move from `Alpha 1.12` to `Ver 1.0` only after the production Supabase tables
-  have RLS enabled, public table grants revoked, Render uses
-  `SUPABASE_SERVICE_ROLE_KEY`, and Security Advisors no longer report public RLS
-  errors.
+- `Ver 1.0` is the first official release. It landed after the production
+  Supabase tables had RLS enabled, public table grants revoked, Render used
+  `SUPABASE_SERVICE_ROLE_KEY`, direct table access was denied, and the app still
+  worked normally.
 - Raise the major number when the update feels big.
 - Raise the minor number for smaller updates and bug fixes.
 - There is no strict corporate-style line. Coolness and update feeling matter.
-- When the app feels ready for normal daily chat use, call it the official release and move to `ver1.0`.
+- From this point, use `Ver X.Y` for official releases.
 
 ## Before Pushing
 
