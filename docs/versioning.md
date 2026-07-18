@@ -7,7 +7,7 @@ The real reason is also simple: it makes the app feel cooler.
 
 ## Current Version
 
-Ver 1.0
+Ver 1.1
 
 ## Rules
 
@@ -30,6 +30,8 @@ Ver 1.0
   Supabase tables had RLS enabled, public table grants revoked, Render used
   `SUPABASE_SERVICE_ROLE_KEY`, direct table access was denied, and the app still
   worked normally.
+- `Ver 1.1` added the new message inbox at the top of the menu, showing who sent
+  the message, the preview, and where it came from.
 - Raise the major number when the update feels big.
 - Raise the minor number for smaller updates and bug fixes.
 - There is no strict corporate-style line. Coolness and update feeling matter.

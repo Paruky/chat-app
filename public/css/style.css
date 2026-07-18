@@ -1106,6 +1106,115 @@ button {
     gap: 10px;
 }
 
+.new-message-panel {
+    display: grid;
+    gap: 10px;
+}
+
+.new-message-panel[hidden] {
+    display: none;
+}
+
+.new-message-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--text-sub);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#new-message-clear-btn {
+    padding: 7px 10px;
+    border-radius: 10px;
+    background: var(--bg-message);
+    color: var(--text-sub);
+    font-size: 12px;
+}
+
+.new-message-list {
+    display: grid;
+    gap: 8px;
+}
+
+.new-message-item {
+    width: 100%;
+    min-height: 76px;
+    display: grid;
+    gap: 5px;
+    padding: 12px 14px;
+    border: 1px solid rgba(0, 122, 255, 0.22);
+    border-radius: var(--radius);
+    background:
+        linear-gradient(135deg, rgba(0, 122, 255, 0.18), rgba(0, 122, 255, 0.05)),
+        var(--bg-card);
+    color: var(--text-main);
+    text-align: left;
+    transition:
+        background var(--transition),
+        transform var(--transition),
+        border-color var(--transition);
+}
+
+.new-message-item:hover {
+    border-color: rgba(0, 122, 255, 0.42);
+    background:
+        linear-gradient(135deg, rgba(0, 122, 255, 0.24), rgba(0, 122, 255, 0.08)),
+        var(--bg-card);
+}
+
+.new-message-item:active {
+    transform: scale(0.98);
+}
+
+.new-message-meta,
+.new-message-source {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.new-message-sender {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+}
+
+.new-message-time,
+.new-message-source {
+    color: var(--text-sub);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.new-message-preview {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.new-message-source {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.new-message-empty {
+    padding: 12px 14px;
+    color: var(--text-sub);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    font-size: 13px;
+}
+
 #app-version {
     position: fixed;
     top: calc(10px + env(safe-area-inset-top));

@@ -90,6 +90,63 @@ function createDeletedMessagePayload(deletedBy) {
     });
 }
 
+function compactText(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function truncate(value, maxLength) {
+    const text = compactText(value);
+
+    if (text.length <= maxLength) return text;
+
+    return `${text.slice(0, maxLength)}...`;
+}
+
+function parseMessagePayload(message) {
+    try {
+        return JSON.parse(String(message || ""));
+    } catch (error) {
+        return {
+            type: "text",
+            text: String(message || "")
+        };
+    }
+}
+
+function createMessagePreview(message) {
+    const payload = parseMessagePayload(message?.message);
+
+    if (payload.type === "paruky:image:v1") {
+        return "写真を送信しました";
+    }
+
+    if (payload.type === "paruky:file:v1") {
+        return truncate(`ファイルを送信しました: ${payload.name || "file"}`, 120);
+    }
+
+    if (payload.type === "paruky:reply:v1") {
+        return truncate(payload.text || "返信", 120);
+    }
+
+    if (payload.type === "paruky:effect:v1") {
+        return truncate(payload.text || "エフェクト", 120);
+    }
+
+    return truncate(payload.text || message?.message || "メッセージ", 120);
+}
+
+function createNewMessageNotification(message, senderUser = {}) {
+    return {
+        id: message.id,
+        room: message.room || "",
+        userId: message.userId || "",
+        name: compactText(message.name) || "ユーザー",
+        accountName: senderUser.accountName || senderUser.accountKey || "",
+        preview: createMessagePreview(message),
+        createdAt: message.created_at || new Date().toISOString()
+    };
+}
+
 function getMessageReadCount(message, receipts) {
     const messageId = cleanLastReadMessageId(message?.id);
 
@@ -200,6 +257,19 @@ function registerSocketHandlers(io, dependencies) {
             reactions: createReactionSummary(
                 reactions.filter((reaction) => reaction.messageId === messageId)
             )
+        });
+    }
+
+    function emitNewMessageNotification(message, senderSocketId) {
+        const senderSocket = io.sockets.sockets.get(senderSocketId);
+        const payload = createNewMessageNotification(message, senderSocket?.authUser);
+
+        io.sockets.sockets.forEach((targetSocket) => {
+            if (targetSocket.id === senderSocketId) return;
+            if (targetSocket.authUser?.id === message.userId) return;
+            if (!canAccessRoom(targetSocket.authUser, message.room)) return;
+
+            targetSocket.emit("new message notification", payload);
         });
     }
 
@@ -377,10 +447,7 @@ function registerSocketHandlers(io, dependencies) {
                     reactions: []
                 });
 
-                socket.broadcast.emit("new message notification", {
-                    room,
-                    userId: profile.userId
-                });
+                emitNewMessageNotification(insertedMessage, socket.id);
 
                 pushNotifications
                     ?.notifyMessage(insertedMessage)

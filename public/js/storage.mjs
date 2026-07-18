@@ -1,6 +1,7 @@
 const KEYS = {
     lastRoom: "lastRoom",
     unreadCounts: "unreadCounts",
+    newMessagePreviews: "newMessagePreviews",
     settings: "settings",
     hiddenDmRooms: "hiddenDmRooms",
     dmDisplayNames: "dmDisplayNames",
@@ -43,6 +44,14 @@ export function loadUnreadCounts() {
 
 export function saveUnreadCounts(unreadCounts) {
     writeJson(KEYS.unreadCounts, unreadCounts);
+}
+
+export function loadNewMessagePreviews(accountKey) {
+    return readJson(accountScopedKey(KEYS.newMessagePreviews, accountKey), []);
+}
+
+export function saveNewMessagePreviews(accountKey, messages) {
+    writeJson(accountScopedKey(KEYS.newMessagePreviews, accountKey), messages);
 }
 
 export function loadSettings() {

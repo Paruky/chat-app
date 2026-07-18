@@ -54,6 +54,7 @@ import {
     subscribeToNotifications,
     unsubscribeFromNotifications
 } from "./notifications.mjs";
+import { renderNewMessageList } from "./newMessages.mjs";
 import {
     createDmRoom,
     formatDmTitle,
@@ -67,11 +68,13 @@ import {
     loadLastRoom,
     loadDmDisplayNames,
     loadHiddenDmRooms,
+    loadNewMessagePreviews,
     loadUnreadCounts,
     loadCannedMessages,
     loadSettings,
     saveDmDisplayNames,
     saveHiddenDmRooms,
+    saveNewMessagePreviews,
     saveCannedMessages,
     saveLastRoom,
     saveSettings,
@@ -104,6 +107,7 @@ const state = {
     accessToken: "",
     currentRoom: "",
     rooms: [],
+    newMessagePreviews: [],
     hiddenDmRooms: loadHiddenDmRooms(),
     dmDisplayNames: loadDmDisplayNames(),
     unreadCounts: loadUnreadCounts(),
@@ -309,6 +313,114 @@ function renderDms() {
     });
 }
 
+function normalizeNewMessagePreview(entry) {
+    const room = cleanText(entry?.room, LIMITS.roomName);
+    const id = String(entry?.id || `${room}:${Date.now()}`);
+
+    if (!room) return null;
+
+    return {
+        id,
+        room,
+        userId: String(entry?.userId || ""),
+        name: cleanText(entry?.name, 160) || "ユーザー",
+        accountName: normalizeAccountName(entry?.accountName || ""),
+        preview: cleanText(entry?.preview, 160) || "メッセージ",
+        createdAt: entry?.createdAt || new Date().toISOString()
+    };
+}
+
+function getNewMessageStorageKey() {
+    return getCurrentAccount() || state.user?.id || "default";
+}
+
+function saveNewMessages() {
+    saveNewMessagePreviews(getNewMessageStorageKey(), state.newMessagePreviews);
+}
+
+function getNewMessagePeer(entry) {
+    return entry.accountName ||
+        state.dmDisplayNames[entry.room] ||
+        getDmPeer(entry.room, getCurrentAccount()) ||
+        normalizeAccountName(entry.name);
+}
+
+function formatNewMessageSource(entry) {
+    if (isDmRoom(entry.room)) {
+        const peer = getNewMessagePeer(entry);
+
+        return peer ? `DM @${peer}` : "DM";
+    }
+
+    return `# ${entry.room}`;
+}
+
+function renderNewMessages() {
+    renderNewMessageList({
+        entries: state.newMessagePreviews,
+        formatSource: formatNewMessageSource,
+        onOpen: openNewMessage
+    });
+}
+
+function clearNewMessages() {
+    state.newMessagePreviews = [];
+    saveNewMessages();
+    renderNewMessages();
+}
+
+function removeNewMessagesForRoom(room) {
+    if (!room || state.newMessagePreviews.length === 0) return;
+
+    const nextPreviews = state.newMessagePreviews.filter((entry) => entry.room !== room);
+
+    if (nextPreviews.length === state.newMessagePreviews.length) return;
+
+    state.newMessagePreviews = nextPreviews;
+    saveNewMessages();
+    renderNewMessages();
+}
+
+function addNewMessagePreview(entry) {
+    const normalized = normalizeNewMessagePreview(entry);
+
+    if (!normalized || normalized.room === state.currentRoom) return;
+    if (normalized.userId && normalized.userId === state.user?.id) return;
+
+    if (isDmRoom(normalized.room)) {
+        const peer = getNewMessagePeer(normalized);
+
+        if (!peer) return;
+
+        showDmRoom(normalized.room);
+        rememberDmDisplayName(normalized.room, peer);
+    }
+
+    state.newMessagePreviews = [
+        normalized,
+        ...state.newMessagePreviews.filter((message) =>
+            message.room !== normalized.room || message.id !== normalized.id
+        )
+    ].slice(0, 8);
+    saveNewMessages();
+    renderNewMessages();
+}
+
+function openNewMessage(entry) {
+    if (!entry?.room) return;
+
+    if (isDmRoom(entry.room)) {
+        const peer = getNewMessagePeer(entry);
+
+        if (!peer) return;
+
+        joinDm({ peer, room: entry.room });
+        return;
+    }
+
+    joinRoom(entry.room);
+}
+
 function rememberDmDisplayName(room, accountName) {
     const displayName = normalizeAccountName(accountName);
 
@@ -415,6 +527,7 @@ function markRoomAsRead(room) {
 
     state.unreadCounts[room] = 0;
     saveUnreadCounts(state.unreadCounts);
+    removeNewMessagesForRoom(room);
     renderRooms();
     renderDms();
 }
@@ -1019,6 +1132,11 @@ async function checkUser() {
     const profile = getUserProfile();
     setUserBar(profile);
     setLoading(false);
+    state.newMessagePreviews = (loadNewMessagePreviews(getNewMessageStorageKey()) || [])
+        .map(normalizeNewMessagePreview)
+        .filter(Boolean)
+        .slice(0, 8);
+    renderNewMessages();
     refreshNotificationStatus();
     await connectAuthenticatedSocket();
 
@@ -1175,6 +1293,8 @@ elements.versionHistoryBackButton.addEventListener("click", () => {
 elements.notificationsButton.addEventListener("click", () => {
     togglePushNotifications();
 });
+
+elements.newMessageClearButton.addEventListener("click", clearNewMessages);
 
 elements.attachmentButton.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -1377,6 +1497,7 @@ socket.on("read receipts", (data) => {
 
 socket.on("new message notification", (data) => {
     vibrateForForegroundMessage(data?.room);
+    addNewMessagePreview(data);
     incrementUnread(data?.room);
 });
 
