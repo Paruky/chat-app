@@ -7,7 +7,7 @@ The real reason is also simple: it makes the app feel cooler.
 
 ## Current Version
 
-Ver 1.1
+Ver 1.2
 
 ## Rules
 
@@ -32,6 +32,8 @@ Ver 1.1
   worked normally.
 - `Ver 1.1` added the new message inbox at the top of the menu, showing who sent
   the message, the preview, and where it came from.
+- `Ver 1.2` added invite-only rooms, room owner controls, room renaming, room
+  deletion, member management, and member-scoped room notifications.
 - Raise the major number when the update feels big.
 - Raise the minor number for smaller updates and bug fixes.
 - There is no strict corporate-style line. Coolness and update feeling matter.

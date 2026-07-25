@@ -1264,8 +1264,15 @@ button {
         transform var(--transition);
 }
 
+.room-list-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: stretch;
+}
+
 .room-item:not(.dm-item) {
-    padding-right: 44px;
+    padding-right: 16px;
 }
 
 .room-name {
@@ -1287,6 +1294,109 @@ button {
 .room-item.active {
     background: var(--accent);
     color: white;
+}
+
+.room-manage-btn {
+    min-width: 64px;
+    padding: 0 12px;
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    color: var(--text-sub);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.room-manage-btn:hover {
+    color: var(--text-main);
+    background: var(--bg-message);
+}
+
+.room-management-panel {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+}
+
+.room-management-panel[hidden] {
+    display: none;
+}
+
+.room-management-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.room-management-header h2 {
+    margin: 4px 0 0;
+    font-size: 20px;
+    line-height: 1.2;
+}
+
+#room-management-close-btn {
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: var(--bg-message);
+    color: var(--text-sub);
+    font-size: 13px;
+}
+
+.room-management-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 0;
+    background: transparent;
+}
+
+.room-management-form input {
+    min-width: 0;
+}
+
+.room-member-list {
+    display: grid;
+    gap: 8px;
+}
+
+.room-member-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--bg-message);
+}
+
+.room-member-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+}
+
+.room-member-role {
+    margin-left: 6px;
+    color: var(--text-sub);
+    font-size: 12px;
+}
+
+.room-member-remove-btn {
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(255, 69, 58, 0.16);
+    color: #ff8a82;
+    font-size: 12px;
+}
+
+.danger-action-btn {
+    background: rgba(255, 69, 58, 0.16);
+    color: #ff8a82;
 }
 
 .dm-item .room-name::before {
@@ -2673,6 +2783,15 @@ body.compact-mode #messages {
 
     .room-item {
         min-height: 58px;
+    }
+
+    .room-list-row,
+    .room-management-form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .room-manage-btn {
+        min-height: 44px;
     }
 
     #file-upload-btn {

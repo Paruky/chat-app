@@ -107,6 +107,10 @@ const state = {
     accessToken: "",
     currentRoom: "",
     rooms: [],
+    roomRecords: [],
+    roomDetails: {},
+    managedRoom: "",
+    managedRoomMembers: [],
     newMessagePreviews: [],
     hiddenDmRooms: loadHiddenDmRooms(),
     dmDisplayNames: loadDmDisplayNames(),
@@ -289,12 +293,52 @@ function getCurrentAccount() {
     );
 }
 
+function normalizeRoomRecord(room) {
+    if (typeof room === "string") {
+        return {
+            name: cleanText(room, LIMITS.roomName),
+            isDm: isDmRoom(room),
+            isOwner: false,
+            memberCount: 0,
+            members: []
+        };
+    }
+
+    const name = cleanText(room?.name, LIMITS.roomName);
+
+    return {
+        name,
+        ownerUserId: String(room?.ownerUserId || ""),
+        ownerAccountName: cleanText(room?.ownerAccountName || "", 160),
+        ownerAccountKey: normalizeAccountName(room?.ownerAccountKey || ""),
+        isDm: room?.isDm === true || isDmRoom(name),
+        isOwner: room?.isOwner === true,
+        memberCount: Number(room?.memberCount || 0),
+        members: Array.isArray(room?.members) ? room.members : []
+    };
+}
+
+function setRoomRecords(rooms) {
+    state.roomRecords = (rooms || [])
+        .map(normalizeRoomRecord)
+        .filter((room) => room.name);
+    state.rooms = state.roomRecords.map((room) => room.name);
+    state.roomDetails = Object.fromEntries(
+        state.roomRecords.map((room) => [room.name, room])
+    );
+}
+
+function getRoomRecord(room) {
+    return state.roomDetails[room] || normalizeRoomRecord(room);
+}
+
 function renderRooms() {
     renderRoomList({
-        rooms: state.rooms.filter((room) => !isDmRoom(room)),
+        rooms: state.roomRecords.filter((room) => !room.isDm),
         currentRoom: state.currentRoom,
         unreadCounts: state.unreadCounts,
         showUnreadBadges: state.settings.unreadBadges,
+        onManageRoom: openRoomManagement,
         onSelectRoom: joinRoom
     });
 }
@@ -311,6 +355,106 @@ function renderDms() {
         onSelectDm: joinDm,
         onDeleteDm: deleteDm
     });
+}
+
+function formatRoomMemberName(member) {
+    const accountName = normalizeAccountName(member?.accountName || member?.account_name || "");
+    const userId = String(member?.userId || member?.user_id || "");
+
+    if (accountName) return `@${accountName}`;
+    if (userId) return `ユーザー ${userId.slice(0, 8)}`;
+
+    return "メンバー";
+}
+
+function renderRoomManagement() {
+    const room = state.managedRoom;
+    const roomRecord = getRoomRecord(room);
+    const isOpen = Boolean(room && roomRecord?.isOwner);
+
+    elements.roomManagementPanel.hidden = !isOpen;
+
+    if (!isOpen) return;
+
+    elements.roomManagementTitle.textContent = room;
+    elements.roomRenameInput.value = room;
+    elements.roomMemberList.replaceChildren();
+
+    const members = state.managedRoomMembers.length > 0
+        ? state.managedRoomMembers
+        : roomRecord.members || [];
+
+    if (members.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.textContent = "まだメンバー情報がありません";
+        elements.roomMemberList.appendChild(empty);
+        return;
+    }
+
+    members.forEach((member) => {
+        const item = document.createElement("div");
+        item.className = "room-member-item";
+
+        const name = document.createElement("div");
+        name.className = "room-member-name";
+        name.textContent = formatRoomMemberName(member);
+
+        const role = document.createElement("span");
+        role.className = "room-member-role";
+        role.textContent = member.role === "owner" ? "部屋主" : "メンバー";
+        name.appendChild(role);
+        item.appendChild(name);
+
+        if (member.role !== "owner") {
+            const removeButton = document.createElement("button");
+            removeButton.type = "button";
+            removeButton.className = "room-member-remove-btn";
+            removeButton.textContent = "削除";
+            removeButton.addEventListener("click", () => {
+                socket.emit("remove room member", {
+                    room,
+                    memberKey: member.memberKey || member.member_key
+                });
+            });
+            item.appendChild(removeButton);
+        }
+
+        elements.roomMemberList.appendChild(item);
+    });
+}
+
+function openRoomManagement(room) {
+    const roomName = cleanText(room, LIMITS.roomName);
+    const roomRecord = getRoomRecord(roomName);
+
+    if (!roomName || !roomRecord.isOwner) return;
+
+    state.managedRoom = roomName;
+    state.managedRoomMembers = roomRecord.members || [];
+    renderRoomManagement();
+    socket.emit("request room members", {
+        room: roomName
+    });
+}
+
+function closeRoomManagement() {
+    state.managedRoom = "";
+    state.managedRoomMembers = [];
+    renderRoomManagement();
+}
+
+function refreshManagedRoomAfterListUpdate() {
+    if (!state.managedRoom) return;
+
+    const roomRecord = getRoomRecord(state.managedRoom);
+
+    if (!roomRecord?.isOwner) {
+        closeRoomManagement();
+        return;
+    }
+
+    renderRoomManagement();
 }
 
 function normalizeNewMessagePreview(entry) {
@@ -838,6 +982,9 @@ function showRoomMenu(panel = "rooms") {
     resetVisibleUnread();
     renderRooms();
     renderDms();
+    if (panel !== "rooms") {
+        closeRoomManagement();
+    }
     showMenuPanel(panel);
     showRoomsView();
 
@@ -1256,6 +1403,51 @@ elements.roomForm.addEventListener("submit", (event) => {
     joinRoom(elements.roomInput.value);
 });
 
+elements.roomManagementCloseButton.addEventListener("click", closeRoomManagement);
+
+elements.roomRenameForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const room = state.managedRoom;
+    const nextName = cleanText(elements.roomRenameInput.value, LIMITS.roomName);
+
+    if (!room || !nextName || room === nextName) return;
+
+    socket.emit("rename room", {
+        room,
+        nextName
+    });
+});
+
+elements.roomMemberForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const room = state.managedRoom;
+    const accountName = normalizeAccountName(elements.roomMemberInput.value);
+
+    if (!room || !accountName) return;
+
+    socket.emit("add room member", {
+        room,
+        accountName
+    });
+    elements.roomMemberInput.value = "";
+});
+
+elements.roomDeleteButton.addEventListener("click", () => {
+    const room = state.managedRoom;
+
+    if (!room) return;
+
+    const confirmed = window.confirm(`部屋「${room}」を削除しますか？メッセージも削除されます。`);
+
+    if (!confirmed) return;
+
+    socket.emit("delete room", {
+        room
+    });
+});
+
 elements.dmForm.addEventListener("submit", (event) => {
     event.preventDefault();
     joinDm(elements.dmInput.value);
@@ -1404,13 +1596,66 @@ socket.on("message history", (data) => {
 });
 
 socket.on("room list", (rooms) => {
-    state.rooms = rooms || [];
+    setRoomRecords(rooms);
     renderRooms();
     renderDms();
+    refreshManagedRoomAfterListUpdate();
 
     if (state.currentRoom && !state.rooms.includes(state.currentRoom)) {
         showRoomMenu(isDmRoom(state.currentRoom) ? "dms" : "rooms");
     }
+});
+
+socket.on("room members", (data) => {
+    if (data?.room !== state.managedRoom) return;
+
+    state.managedRoomMembers = Array.isArray(data.members) ? data.members : [];
+    renderRoomManagement();
+});
+
+socket.on("room renamed", (data) => {
+    const room = cleanText(data?.room, LIMITS.roomName);
+    const nextRoom = cleanText(data?.nextRoom, LIMITS.roomName);
+
+    if (!room || !nextRoom) return;
+
+    if (state.currentRoom === room) {
+        state.currentRoom = nextRoom;
+        elements.roomInput.value = nextRoom;
+        setCurrentRoomName(nextRoom);
+        saveLastRoom(nextRoom);
+        window.history.replaceState(null, "", `#/rooms/${encodeRoomRoute(nextRoom)}`);
+    }
+
+    if (state.managedRoom === room) {
+        state.managedRoom = nextRoom;
+        renderRoomManagement();
+        socket.emit("request room members", {
+            room: nextRoom
+        });
+    }
+});
+
+function returnToRoomsAfterRoomClosed(room) {
+    if (state.currentRoom === room) {
+        showRoomMenu("rooms");
+    }
+
+    if (state.managedRoom === room) {
+        closeRoomManagement();
+    }
+}
+
+socket.on("room deleted", (data) => {
+    returnToRoomsAfterRoomClosed(cleanText(data?.room, LIMITS.roomName));
+});
+
+socket.on("room access removed", (data) => {
+    returnToRoomsAfterRoomClosed(cleanText(data?.room, LIMITS.roomName));
+});
+
+socket.on("room access denied", (data) => {
+    returnToRoomsAfterRoomClosed(cleanText(data?.room, LIMITS.roomName));
 });
 
 socket.on("chat message", (data) => {

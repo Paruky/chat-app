@@ -33,6 +33,7 @@ alter table public.push_subscriptions enable row level security;
 alter table public.version_history enable row level security;
 alter table public.read_receipts enable row level security;
 alter table public.message_reactions enable row level security;
+alter table public.room_members enable row level security;
 
 revoke all on table public.messages from anon, authenticated;
 revoke all on table public.rooms from anon, authenticated;
@@ -40,6 +41,7 @@ revoke all on table public.push_subscriptions from anon, authenticated;
 revoke all on table public.version_history from anon, authenticated;
 revoke all on table public.read_receipts from anon, authenticated;
 revoke all on table public.message_reactions from anon, authenticated;
+revoke all on table public.room_members from anon, authenticated;
 
 grant select, insert, update, delete on table public.messages to service_role;
 grant select, insert, update, delete on table public.rooms to service_role;
@@ -47,6 +49,7 @@ grant select, insert, update, delete on table public.push_subscriptions to servi
 grant select, insert, update, delete on table public.version_history to service_role;
 grant select, insert, update, delete on table public.read_receipts to service_role;
 grant select, insert, update, delete on table public.message_reactions to service_role;
+grant select, insert, update, delete on table public.room_members to service_role;
 
 revoke usage, select on sequence public.messages_id_seq from anon, authenticated;
 revoke usage, select on sequence public.rooms_id_seq from anon, authenticated;
@@ -94,4 +97,20 @@ login is added later.
 - Authorization checks use the Supabase Auth user ID plus OAuth identity/email
   data. Do not use user-editable `user_metadata` for new permission checks.
 - DM sockets are accepted only when the authenticated account is part of the DM room name.
+- Normal rooms are accepted only when the authenticated user is in
+  `room_members` or owns the room.
+- Room owners are the only users allowed to rename a room, delete a room, invite
+  members, or remove members.
+- Room notifications are sent only to users that still have room access.
 - Version history writes require the server-side editor allowlist.
+
+## Room membership tables
+
+`rooms` now stores the room owner, and `room_members` stores invited accounts.
+Invites are keyed by normalized account name so a room owner can invite someone
+before that person has opened the app on the current device. When the invited
+account joins, the server binds the Supabase Auth user ID to that membership.
+
+Room names are still the current message-room key for compatibility. When a room
+owner renames a room, Postgres foreign keys with `ON UPDATE CASCADE` move
+messages, read receipts, reactions, and member rows to the new name.

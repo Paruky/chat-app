@@ -144,6 +144,7 @@ function createNotificationPayload(message, record) {
 
 function createPushNotificationService(config, subscriptionsRepository, options = {}) {
     const enabled = isPushConfigured(config);
+    const canNotifySubscriptionForRoom = options.canNotifySubscription || (() => true);
     const isRecipientActive = options.isRecipientActive || (() => false);
 
     if (enabled) {
@@ -158,23 +159,24 @@ function createPushNotificationService(config, subscriptionsRepository, options 
         if (!enabled) return;
 
         const subscriptions = await subscriptionsRepository.listSubscriptions();
-        await Promise.all(subscriptions
-            .filter((record) => canNotifySubscription(record, message))
-            .filter((record) => !isRecipientActive(record, message))
-            .map(async (record) => {
-                try {
-                    await webPush.sendNotification(
-                        record.subscription,
-                        createNotificationPayload(message, record)
-                    );
-                } catch (error) {
-                    console.warn("[push-notification]", error.message);
+        await Promise.all(subscriptions.map(async (record) => {
+            if (!canNotifySubscription(record, message)) return;
+            if (!await canNotifySubscriptionForRoom(record, message)) return;
+            if (isRecipientActive(record, message)) return;
 
-                    if (shouldDeleteSubscription(error)) {
-                        await subscriptionsRepository.deleteSubscription(record.endpoint);
-                    }
+            try {
+                await webPush.sendNotification(
+                    record.subscription,
+                    createNotificationPayload(message, record)
+                );
+            } catch (error) {
+                console.warn("[push-notification]", error.message);
+
+                if (shouldDeleteSubscription(error)) {
+                    await subscriptionsRepository.deleteSubscription(record.endpoint);
                 }
-            }));
+            }
+        }));
     }
 
     async function saveSubscription({ userId, accountName, subscription }) {

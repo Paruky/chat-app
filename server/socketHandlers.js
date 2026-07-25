@@ -58,9 +58,8 @@ function accountKeysMatch(left, right) {
             rightKey.startsWith(leftKey));
 }
 
-function canAccessRoom(user, room) {
-    if (!isDmRoom(room)) return true;
-
+function canAccessDmRoom(user, room) {
+    if (!isDmRoom(room)) return false;
     const users = parseDmRoom(room);
 
     return users.length === 2 &&
@@ -224,9 +223,26 @@ function registerSocketHandlers(io, dependencies) {
     const cleanRoomName = createTextCleaner(maxRoomNameLength);
     const cleanMessage = createTextCleaner(maxMessageLength);
 
-    async function emitRoomList(target = io) {
-        const rooms = await roomsRepository.listRooms();
-        target.emit("room list", rooms);
+    async function canAccessChatRoom(user, room) {
+        if (!room || !user) return false;
+        if (isDmRoom(room)) return canAccessDmRoom(user, room);
+
+        return roomsRepository.canUserAccessRoom(room, user);
+    }
+
+    async function emitRoomList(target) {
+        if (target?.authUser) {
+            const rooms = await roomsRepository.listRoomsForUser(target.authUser);
+            target.emit("room list", rooms);
+            return;
+        }
+
+        await Promise.all([...io.sockets.sockets.values()].map(async (targetSocket) => {
+            if (!targetSocket.authUser) return;
+
+            const rooms = await roomsRepository.listRoomsForUser(targetSocket.authUser);
+            targetSocket.emit("room list", rooms);
+        }));
     }
 
     async function listMessagesWithState(room) {
@@ -260,16 +276,61 @@ function registerSocketHandlers(io, dependencies) {
         });
     }
 
-    function emitNewMessageNotification(message, senderSocketId) {
+    async function emitNewMessageNotification(message, senderSocketId) {
         const senderSocket = io.sockets.sockets.get(senderSocketId);
         const payload = createNewMessageNotification(message, senderSocket?.authUser);
 
-        io.sockets.sockets.forEach((targetSocket) => {
+        await Promise.all([...io.sockets.sockets.values()].map(async (targetSocket) => {
             if (targetSocket.id === senderSocketId) return;
             if (targetSocket.authUser?.id === message.userId) return;
-            if (!canAccessRoom(targetSocket.authUser, message.room)) return;
+            if (!await canAccessChatRoom(targetSocket.authUser, message.room)) return;
 
             targetSocket.emit("new message notification", payload);
+        }));
+    }
+
+    function moveSocketsToRenamedRoom(room, nextRoom) {
+        io.sockets.sockets.forEach((targetSocket) => {
+            if (targetSocket.currentRoom !== room) return;
+
+            targetSocket.leave(room);
+            targetSocket.join(nextRoom);
+            targetSocket.currentRoom = nextRoom;
+            targetSocket.emit("room renamed", {
+                room,
+                nextRoom
+            });
+        });
+    }
+
+    function closeSocketsForRoom(room, eventName = "room deleted") {
+        io.sockets.sockets.forEach((targetSocket) => {
+            if (targetSocket.currentRoom !== room) return;
+
+            targetSocket.leave(room);
+            targetSocket.currentRoom = "";
+            targetSocket.emit(eventName, {
+                room
+            });
+        });
+    }
+
+    async function refreshRoomAccess(room) {
+        await Promise.all([...io.sockets.sockets.values()].map(async (targetSocket) => {
+            if (targetSocket.currentRoom !== room) return;
+            if (await canAccessChatRoom(targetSocket.authUser, room)) return;
+
+            targetSocket.leave(room);
+            targetSocket.currentRoom = "";
+            targetSocket.emit("room access removed", {
+                room
+            });
+        }));
+    }
+
+    function emitServerError(socket, error, fallbackMessage) {
+        socket.emit("server error", {
+            message: error?.message || fallbackMessage
         });
     }
 
@@ -284,10 +345,25 @@ function registerSocketHandlers(io, dependencies) {
             const room = cleanRoomName(data.room);
             const userId = cleanUserId(socket.authUser?.id);
 
-            if (!room || !userId || !canAccessRoom(socket.authUser, room)) return;
+            if (!room || !userId) return;
 
             try {
-                await roomsRepository.saveRoom(room);
+                const joinedRoom = await roomsRepository.ensureRoomForJoin(room, socket.authUser);
+
+                if (!joinedRoom) {
+                    const message = isDmRoom(room)
+                        ? "このDMには入れません"
+                        : "この部屋には招待されていません";
+
+                    socket.emit("room access denied", {
+                        room,
+                        message
+                    });
+                    socket.emit("server error", {
+                        message
+                    });
+                    return;
+                }
 
                 if (socket.currentRoom) {
                     socket.leave(socket.currentRoom);
@@ -303,9 +379,7 @@ function registerSocketHandlers(io, dependencies) {
                 await emitRoomList();
             } catch (error) {
                 logSocketError("join-room", error);
-                socket.emit("server error", {
-                    message: "部屋に参加できませんでした"
-                });
+                emitServerError(socket, error, "部屋に参加できませんでした");
             }
         });
 
@@ -391,16 +465,127 @@ function registerSocketHandlers(io, dependencies) {
         socket.on("delete dm room", async (data = {}) => {
             const room = cleanRoomName(data.room);
 
-            if (!room || !isDmRoom(room) || !canAccessRoom(socket.authUser, room)) return;
+            if (!room || !isDmRoom(room) || !canAccessDmRoom(socket.authUser, room)) return;
 
             try {
-                await roomsRepository.deleteRoom(room);
+                await roomsRepository.deleteDmRoom(room);
                 await emitRoomList();
             } catch (error) {
                 logSocketError("delete-dm-room", error);
-                socket.emit("server error", {
-                    message: "DMを削除できませんでした"
+                emitServerError(socket, error, "DMを削除できませんでした");
+            }
+        });
+
+        socket.on("request room members", async (data = {}) => {
+            const room = cleanRoomName(data.room);
+
+            if (!room) return;
+
+            try {
+                const members = await roomsRepository.listRoomMembers(room, socket.authUser);
+
+                if (!members) return;
+
+                socket.emit("room members", {
+                    room,
+                    members
                 });
+            } catch (error) {
+                logSocketError("request-room-members", error);
+                emitServerError(socket, error, "メンバーを読み込めませんでした");
+            }
+        });
+
+        socket.on("rename room", async (data = {}) => {
+            const room = cleanRoomName(data.room);
+            const nextName = cleanRoomName(data.nextName);
+
+            if (!room || !nextName) return;
+
+            try {
+                const renamedRoom = await roomsRepository.renameRoom({
+                    room,
+                    nextName,
+                    user: socket.authUser
+                });
+
+                if (!renamedRoom) return;
+
+                moveSocketsToRenamedRoom(room, renamedRoom.name);
+                await emitRoomList();
+            } catch (error) {
+                logSocketError("rename-room", error);
+                emitServerError(socket, error, "部屋名を変更できませんでした");
+            }
+        });
+
+        socket.on("delete room", async (data = {}) => {
+            const room = cleanRoomName(data.room);
+
+            if (!room) return;
+
+            try {
+                const deleted = await roomsRepository.deleteRoom({
+                    room,
+                    user: socket.authUser
+                });
+
+                if (!deleted) return;
+
+                closeSocketsForRoom(room);
+                await emitRoomList();
+            } catch (error) {
+                logSocketError("delete-room", error);
+                emitServerError(socket, error, "部屋を削除できませんでした");
+            }
+        });
+
+        socket.on("add room member", async (data = {}) => {
+            const room = cleanRoomName(data.room);
+            const accountName = cleanRoomNameFallback(data.accountName);
+
+            if (!room || !accountName) return;
+
+            try {
+                const members = await roomsRepository.addRoomMember({
+                    room,
+                    accountName,
+                    user: socket.authUser
+                });
+
+                socket.emit("room members", {
+                    room,
+                    members: members || []
+                });
+                await emitRoomList();
+            } catch (error) {
+                logSocketError("add-room-member", error);
+                emitServerError(socket, error, "メンバーを追加できませんでした");
+            }
+        });
+
+        socket.on("remove room member", async (data = {}) => {
+            const room = cleanRoomName(data.room);
+            const memberKey = String(data.memberKey || "").trim().slice(0, 220);
+
+            if (!room || !memberKey) return;
+
+            try {
+                const members = await roomsRepository.removeRoomMember({
+                    room,
+                    memberKey,
+                    user: socket.authUser
+                });
+
+                socket.emit("room members", {
+                    room,
+                    members: members || []
+                });
+                await refreshRoomAccess(room);
+                await emitRoomList();
+            } catch (error) {
+                logSocketError("remove-room-member", error);
+                emitServerError(socket, error, "メンバーを削除できませんでした");
             }
         });
 
@@ -447,7 +632,7 @@ function registerSocketHandlers(io, dependencies) {
                     reactions: []
                 });
 
-                emitNewMessageNotification(insertedMessage, socket.id);
+                await emitNewMessageNotification(insertedMessage, socket.id);
 
                 pushNotifications
                     ?.notifyMessage(insertedMessage)

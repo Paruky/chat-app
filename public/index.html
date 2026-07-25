@@ -48,6 +48,32 @@
 
                 <div class="menu-section-title">部屋一覧</div>
                 <div id="room-list"></div>
+
+                <section id="room-management-panel" class="room-management-panel" hidden>
+                    <div class="room-management-header">
+                        <div>
+                            <div class="menu-section-title">部屋管理</div>
+                            <h2 id="room-management-title">部屋</h2>
+                        </div>
+                        <button id="room-management-close-btn" type="button">閉じる</button>
+                    </div>
+
+                    <form id="room-rename-form" class="room-management-form">
+                        <input id="room-rename-input" placeholder="新しい部屋名">
+                        <button id="room-rename-btn" type="submit">名前変更</button>
+                    </form>
+
+                    <form id="room-member-form" class="room-management-form">
+                        <input id="room-member-input" placeholder="招待するアカウント名">
+                        <button id="room-member-add-btn" type="submit">招待</button>
+                    </form>
+
+                    <div id="room-member-list" class="room-member-list"></div>
+
+                    <button id="room-delete-btn" type="button" class="danger-action-btn">
+                        部屋を削除
+                    </button>
+                </section>
             </section>
 
             <section id="dms-panel" class="menu-panel" hidden>

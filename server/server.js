@@ -38,10 +38,18 @@ function createServer() {
     const requireUser = createRequireUser(authService);
     const requireVersionHistoryEditor = createRequireVersionHistoryEditor(config);
     const notificationPresence = createNotificationPresence();
+    const roomsRepository = createRoomsRepository(supabase);
+    const pushSubscriptionsRepository = createPushSubscriptionsRepository(supabase);
     const pushNotifications = createPushNotificationService(
         config,
-        createPushSubscriptionsRepository(supabase),
+        pushSubscriptionsRepository,
         {
+            canNotifySubscription: (record, message) =>
+                roomsRepository.canUserAccessRoom(message.room, {
+                    id: record.userId,
+                    accountName: record.accountName,
+                    accountKey: record.accountName
+                }),
             isRecipientActive: notificationPresence.hasVisibleClient
         }
     );
@@ -60,7 +68,7 @@ function createServer() {
 
     registerSocketAuth(io, authService);
     registerSocketHandlers(io, {
-        roomsRepository: createRoomsRepository(supabase),
+        roomsRepository,
         messagesRepository: createMessagesRepository(supabase),
         messageReactionsRepository: createMessageReactionsRepository(supabase),
         readReceiptsRepository: createReadReceiptsRepository(supabase),

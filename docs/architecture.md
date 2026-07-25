@@ -7,6 +7,8 @@
 - `server/supabase.js` creates the Supabase client.
 - `server/auth.js` verifies Supabase access tokens and owns server-side user identity.
 - `server/repositories/` keeps database access in one place.
+- `server/repositories/roomsRepository.js` owns room access, ownership, invites,
+  member changes, and room rename/delete persistence.
 - `server/pushNotifications.js` owns Web Push setup, API routes, and notification sending.
 - `server/versionHistoryRoutes.js` owns the version history API.
 - `server/socketHandlers.js` owns realtime chat events.
@@ -39,6 +41,7 @@ Before pushing a visible update, check `docs/versioning.md` and update the versi
 - Keep improving mobile PWA input behavior.
 - Keep iPhone push notifications stable after future messaging changes.
 - Add a visible error message area for failed sends or failed room joins.
+- Keep room member management simple enough to use on iPhone.
 - Add basic automated browser checks once the app has stable test data.
 - Keep the `message_reactions` table available in Supabase for persistent emoji reactions.
 - Keep the `read_receipts` table available in Supabase for persistent read receipts.
