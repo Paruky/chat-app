@@ -1,6 +1,11 @@
 import { elements } from "./dom.mjs";
+import {
+    getAccountKey,
+    normalizeAccountName
+} from "./accountNames.mjs";
 
 const DM_PREFIX = "dm:";
+const LEGACY_DM_KEY_LENGTH = 12;
 
 function safeDecode(value) {
     try {
@@ -17,23 +22,21 @@ function createUnreadBadge(count) {
     return badge;
 }
 
-export function normalizeAccountName(value) {
-    return String(value || "")
-        .trim()
-        .replace(/^@+/, "")
-        .replace(/\s+/g, "")
-        .slice(0, 39);
+function accountKeyMatchesDmSegment(segment, accountName) {
+    const segmentKey = getAccountKey(segment);
+    const accountKey = getAccountKey(accountName);
+
+    if (!segmentKey || !accountKey) return false;
+    if (segmentKey === accountKey) return true;
+
+    return segmentKey.length <= LEGACY_DM_KEY_LENGTH &&
+        accountKey.startsWith(segmentKey);
 }
 
-function getAccountKey(accountName) {
-    return normalizeAccountName(accountName).toLowerCase();
-}
+function getCurrentAccountKeys(currentAccount) {
+    const values = Array.isArray(currentAccount) ? currentAccount : [currentAccount];
 
-function accountKeysMatch(left, right) {
-    const leftKey = getAccountKey(left);
-    const rightKey = getAccountKey(right);
-
-    return leftKey === rightKey || leftKey.startsWith(rightKey) || rightKey.startsWith(leftKey);
+    return [...new Set(values.map(getAccountKey).filter(Boolean))];
 }
 
 function createShortKey(value) {
@@ -61,7 +64,7 @@ export function createDmRoom(currentAccount, targetAccount) {
 
     const fingerprint = createShortKey(keys.join("|"));
 
-    return `${DM_PREFIX}${fingerprint}:${keys[0].slice(0, 12)}:${keys[1].slice(0, 12)}`;
+    return `${DM_PREFIX}${fingerprint}:${keys[0]}:${keys[1]}`;
 }
 
 export function parseDmRoom(room) {
@@ -78,13 +81,17 @@ export function parseDmRoom(room) {
 }
 
 export function getDmPeer(room, currentAccount) {
-    const currentKey = getAccountKey(currentAccount);
+    const currentKeys = getCurrentAccountKeys(currentAccount);
     const users = parseDmRoom(room);
-    const currentUser = users.find((user) => accountKeysMatch(user, currentKey));
+    const currentUser = users.find((user) =>
+        currentKeys.some((currentKey) => accountKeyMatchesDmSegment(user, currentKey))
+    );
 
-    if (!currentKey || users.length !== 2 || !currentUser) return "";
+    if (currentKeys.length === 0 || users.length !== 2 || !currentUser) return "";
 
-    return users.find((user) => !accountKeysMatch(user, currentKey)) || "";
+    return users.find((user) =>
+        !currentKeys.some((currentKey) => accountKeyMatchesDmSegment(user, currentKey))
+    ) || "";
 }
 
 export function formatDmTitle(accountName) {

@@ -1,4 +1,7 @@
 const webPush = require("web-push");
+const { getAccountKey } = require("./accountNames");
+
+const LEGACY_DM_KEY_LENGTH = 12;
 
 function isPushConfigured(config) {
     return Boolean(config.vapidPublicKey && config.vapidPrivateKey);
@@ -27,20 +30,15 @@ function parseMessagePayload(message) {
     }
 }
 
-function getAccountKey(value) {
-    return String(value || "")
-        .trim()
-        .replace(/^@+/, "")
-        .replace(/\s+/g, "")
-        .toLowerCase();
-}
+function accountKeyMatchesDmSegment(segment, userKey) {
+    const segmentKey = getAccountKey(segment);
+    const accountKey = getAccountKey(userKey);
 
-function accountKeysMatch(left, right) {
-    const leftKey = getAccountKey(left);
-    const rightKey = getAccountKey(right);
+    if (!segmentKey || !accountKey) return false;
+    if (segmentKey === accountKey) return true;
 
-    return Boolean(leftKey && rightKey) &&
-        (leftKey === rightKey || leftKey.startsWith(rightKey) || rightKey.startsWith(leftKey));
+    return segmentKey.length <= LEGACY_DM_KEY_LENGTH &&
+        accountKey.startsWith(segmentKey);
 }
 
 function isDmRoom(room) {
@@ -65,7 +63,7 @@ function getDmPeerForAccount(room, accountName) {
 
     if (!accountKey || users.length !== 2) return "";
 
-    return users.find((user) => !accountKeysMatch(user, accountKey)) || "";
+    return users.find((user) => !accountKeyMatchesDmSegment(user, accountKey)) || "";
 }
 
 function getMessagePreview(message) {
@@ -124,7 +122,9 @@ function canNotifySubscription(record, message) {
 
     const recipients = parseDmRoom(message.room);
 
-    return recipients.some((accountName) => accountKeysMatch(accountName, record.accountName));
+    return recipients.some((accountName) =>
+        accountKeyMatchesDmSegment(accountName, record.accountName)
+    );
 }
 
 function createNotificationPayload(message, record) {

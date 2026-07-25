@@ -1,3 +1,9 @@
+const {
+    getAccountKey
+} = require("./accountNames");
+
+const LEGACY_DM_KEY_LENGTH = 12;
+
 function createTextCleaner(maxLength) {
     return function cleanText(value) {
         return String(value || "").trim().slice(0, maxLength);
@@ -12,14 +18,6 @@ function cleanMessageId(value) {
 
 function cleanUserId(value) {
     return String(value || "").trim().slice(0, 160);
-}
-
-function getAccountKey(value) {
-    return String(value || "")
-        .trim()
-        .replace(/^@+/, "")
-        .replace(/\s+/g, "")
-        .toLowerCase();
 }
 
 function cleanLastReadMessageId(value) {
@@ -48,14 +46,23 @@ function parseDmRoom(room) {
     return parts.length >= 3 ? parts.slice(1, 3) : parts;
 }
 
-function accountKeysMatch(left, right) {
-    const leftKey = getAccountKey(left);
-    const rightKey = getAccountKey(right);
+function accountKeyMatchesDmSegment(segment, userKey) {
+    const segmentKey = getAccountKey(segment);
+    const accountKey = getAccountKey(userKey);
 
-    return Boolean(leftKey && rightKey) &&
-        (leftKey === rightKey ||
-            leftKey.startsWith(rightKey) ||
-            rightKey.startsWith(leftKey));
+    if (!segmentKey || !accountKey) return false;
+    if (segmentKey === accountKey) return true;
+
+    return segmentKey.length <= LEGACY_DM_KEY_LENGTH &&
+        accountKey.startsWith(segmentKey);
+}
+
+function getUserAccountKeys(user) {
+    return [
+        user?.accountKey,
+        ...(Array.isArray(user?.accountKeys) ? user.accountKeys : []),
+        user?.accountName
+    ].map(getAccountKey).filter(Boolean);
 }
 
 function canAccessDmRoom(user, room) {
@@ -63,7 +70,11 @@ function canAccessDmRoom(user, room) {
     const users = parseDmRoom(room);
 
     return users.length === 2 &&
-        users.some((accountName) => accountKeysMatch(accountName, user?.accountKey));
+        users.some((accountName) =>
+            getUserAccountKeys(user).some((userKey) =>
+                accountKeyMatchesDmSegment(accountName, userKey)
+            )
+        );
 }
 
 function getSocketProfile(socket) {

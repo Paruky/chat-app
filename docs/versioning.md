@@ -7,7 +7,7 @@ The real reason is also simple: it makes the app feel cooler.
 
 ## Current Version
 
-Ver 1.2
+Ver 1.3
 
 ## Rules
 
@@ -34,6 +34,8 @@ Ver 1.2
   the message, the preview, and where it came from.
 - `Ver 1.2` added invite-only rooms, room owner controls, room renaming, room
   deletion, member management, and member-scoped room notifications.
+- `Ver 1.3` added Paruky Chat account names, first-login name setup, account
+  name copying from the menu header, and profile-based room/DM invitations.
 - Raise the major number when the update feels big.
 - Raise the minor number for smaller updates and bug fixes.
 - There is no strict corporate-style line. Coolness and update feeling matter.

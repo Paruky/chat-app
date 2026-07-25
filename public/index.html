@@ -14,6 +14,33 @@
 <div id="loading-screen">
     Loading...
 </div>
+<div id="account-setup-modal" class="account-setup-modal" hidden>
+    <form id="account-setup-form" class="account-setup-card">
+        <div class="account-setup-kicker">Paruky Chat Account</div>
+        <h2 id="account-setup-title">パルチャ名を設定</h2>
+        <p id="account-setup-note">
+            部屋への招待やDMに使う名前です。日本語も使えます。
+        </p>
+        <input
+            id="account-setup-input"
+            autocomplete="nickname"
+            maxlength="40"
+            placeholder="例: はるき"
+        >
+        <div id="account-setup-hint" class="account-setup-hint">
+            20文字以内。空白と # / : ? & % は使えません。
+        </div>
+        <div id="account-setup-error" class="account-setup-error" aria-live="polite"></div>
+        <div class="account-setup-actions">
+            <button id="account-setup-cancel-btn" type="button">
+                キャンセル
+            </button>
+            <button id="account-setup-submit-btn" type="submit">
+                保存
+            </button>
+        </div>
+    </form>
+</div>
 <div id="chat-container">
 
     <section id="rooms-view" class="app-view">
@@ -90,6 +117,16 @@
                 <div class="menu-section-title">設定</div>
 
                 <div class="settings-list">
+                    <div class="setting-card setting-card-horizontal">
+                        <span>
+                            <span class="setting-title">パルチャ名</span>
+                            <span id="account-name-status" class="setting-note">@未設定</span>
+                        </span>
+                        <button id="account-name-change-btn" type="button" class="setting-action-btn">
+                            変更
+                        </button>
+                    </div>
+
                     <label class="setting-card setting-card-horizontal">
                         <span>
                             <span class="setting-title">未読バッジ</span>

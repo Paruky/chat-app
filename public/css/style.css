@@ -2022,11 +2022,61 @@ textarea {
     background: var(--bg-card);
 
     border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    position: relative;
+    transition:
+        background var(--transition),
+        transform var(--transition);
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 #menu-header #user-bar {
     border-bottom: 0;
     border-radius: var(--radius);
+}
+
+#user-bar:hover {
+    background: var(--bg-message);
+}
+
+#user-bar:active {
+    transform: scale(0.98);
+}
+
+#user-bar.copied::after {
+    content: "コピー済み";
+    position: absolute;
+    right: 10px;
+    bottom: -28px;
+    z-index: 5;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.user-bar-text {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.user-bar-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 800;
+}
+
+.user-bar-note {
+    color: var(--text-sub);
+    font-size: 11px;
+    font-weight: 700;
 }
 
 .user-avatar {
@@ -2054,6 +2104,89 @@ textarea {
 
 #loading-screen[hidden] {
     display: none;
+}
+
+.account-setup-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(0, 0, 0, 0.68);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+}
+
+.account-setup-modal[hidden] {
+    display: none;
+}
+
+.account-setup-card {
+    width: min(430px, 100%);
+    display: grid;
+    align-items: stretch;
+    gap: 12px;
+    padding: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    background:
+        linear-gradient(155deg, rgba(35, 38, 42, 0.98), rgba(16, 16, 20, 0.97)),
+        var(--bg-card);
+    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.52);
+}
+
+.account-setup-kicker {
+    color: var(--accent-hover);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0;
+}
+
+.account-setup-card h2 {
+    margin: 0;
+    font-size: 26px;
+    line-height: 1.1;
+}
+
+.account-setup-card p {
+    margin: 0;
+    color: var(--text-sub);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.account-setup-card input {
+    min-height: 48px;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.account-setup-hint,
+.account-setup-error {
+    min-height: 18px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.account-setup-hint {
+    color: var(--text-sub);
+}
+
+.account-setup-error {
+    color: #ff8a82;
+}
+
+.account-setup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+#account-setup-cancel-btn {
+    background: var(--bg-message);
+    color: var(--text-sub);
 }
 
 .screen-effect-layer {
@@ -2744,6 +2877,20 @@ body.compact-mode #messages {
 
     #user-bar {
         width: 100%;
+    }
+
+    #user-bar.copied::after {
+        right: 12px;
+    }
+
+    .account-setup-card {
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    .account-setup-actions {
+        display: grid;
+        grid-template-columns: 1fr;
     }
 
     #room-form,

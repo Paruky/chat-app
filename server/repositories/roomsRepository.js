@@ -1,25 +1,49 @@
 const DM_PREFIX = "dm:";
+const LEGACY_DM_KEY_LENGTH = 12;
 
-function normalizeAccountName(value) {
-    return String(value || "")
-        .trim()
-        .replace(/^@+/, "")
-        .replace(/\s+/g, "")
-        .slice(0, 39);
-}
+const {
+    getAccountKey,
+    normalizeAccountName,
+    validateAccountName
+} = require("../accountNames");
 
-function getAccountKey(value) {
-    return normalizeAccountName(value).toLowerCase();
-}
-
-function accountKeysMatch(left, right) {
+function accountKeysEqual(left, right) {
     const leftKey = getAccountKey(left);
     const rightKey = getAccountKey(right);
 
-    return Boolean(leftKey && rightKey) &&
-        (leftKey === rightKey ||
-            leftKey.startsWith(rightKey) ||
-            rightKey.startsWith(leftKey));
+    return Boolean(leftKey && rightKey) && leftKey === rightKey;
+}
+
+function accountKeyMatchesDmSegment(segment, userKey) {
+    const segmentKey = getAccountKey(segment);
+    const accountKey = getAccountKey(userKey);
+
+    if (!segmentKey || !accountKey) return false;
+    if (segmentKey === accountKey) return true;
+
+    return segmentKey.length <= LEGACY_DM_KEY_LENGTH &&
+        accountKey.startsWith(segmentKey);
+}
+
+function getUserAccountKeys(user) {
+    return [
+        user?.accountKey,
+        ...(Array.isArray(user?.accountKeys) ? user.accountKeys : []),
+        user?.accountName
+    ].map(getAccountKey).filter(Boolean);
+}
+
+function userHasAccountKey(user, accountKey) {
+    const targetKey = getAccountKey(accountKey);
+
+    return Boolean(targetKey) &&
+        getUserAccountKeys(user).some((userKey) => accountKeysEqual(userKey, targetKey));
+}
+
+function userMatchesDmSegment(user, segment) {
+    return getUserAccountKeys(user).some((userKey) =>
+        accountKeyMatchesDmSegment(segment, userKey)
+    );
 }
 
 function isDmRoom(room) {
@@ -42,7 +66,7 @@ function canAccessDmRoom(user, room) {
     const users = parseDmRoom(room);
 
     return users.length === 2 &&
-        users.some((accountName) => accountKeysMatch(accountName, user?.accountKey));
+        users.some((accountName) => userMatchesDmSegment(user, accountName));
 }
 
 function createAccountMemberKey(accountName) {
@@ -62,7 +86,7 @@ function isRoomMemberRecord(user, member) {
 
     return Boolean(
         (member.user_id && member.user_id === user.id) ||
-        (member.account_key && accountKeysMatch(member.account_key, user.accountKey))
+        (member.account_key && userHasAccountKey(user, member.account_key))
     );
 }
 
@@ -71,7 +95,7 @@ function isRoomOwnerRecord(user, room) {
 
     const ownerMatches = Boolean(
         (room.owner_user_id && room.owner_user_id === user.id) ||
-        (room.owner_account_key && accountKeysMatch(room.owner_account_key, user.accountKey))
+        (room.owner_account_key && userHasAccountKey(user, room.owner_account_key))
     );
 
     return ownerMatches || (room.room_members || []).some((member) =>
@@ -81,7 +105,10 @@ function isRoomOwnerRecord(user, room) {
 
 function canAccessRoomRecord(user, room) {
     if (!user || !room) return false;
-    if (isDmRoom(room.name)) return canAccessDmRoom(user, room.name);
+    if (isDmRoom(room.name)) {
+        return canAccessDmRoom(user, room.name) ||
+            (room.room_members || []).some((member) => isRoomMemberRecord(user, member));
+    }
 
     return isRoomOwnerRecord(user, room) ||
         (room.room_members || []).some((member) => isRoomMemberRecord(user, member));
@@ -132,7 +159,7 @@ function createOwnerMember(user) {
 }
 
 function createInvitedMember(accountName, user) {
-    const normalizedAccountName = normalizeAccountName(accountName);
+    const normalizedAccountName = validateAccountName(accountName);
     const accountKey = getAccountKey(normalizedAccountName);
 
     return {
@@ -321,9 +348,14 @@ function createRoomsRepository(supabase) {
 
     async function ensureRoomForJoin(name, user) {
         if (isDmRoom(name)) {
-            if (!canAccessDmRoom(user, name)) return null;
+            const currentDmRoom = await fetchRoom(name);
+
+            if (!canAccessDmRoom(user, name) && !canAccessRoomRecord(user, currentDmRoom)) {
+                return null;
+            }
 
             await saveDmRoom(name);
+            await saveOwnerMember(name, user);
             return fetchRoom(name);
         }
 

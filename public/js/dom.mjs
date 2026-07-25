@@ -10,6 +10,15 @@ function byId(id) {
 
 export const elements = {
     loadingScreen: byId("loading-screen"),
+    accountSetupModal: byId("account-setup-modal"),
+    accountSetupForm: byId("account-setup-form"),
+    accountSetupTitle: byId("account-setup-title"),
+    accountSetupNote: byId("account-setup-note"),
+    accountSetupInput: byId("account-setup-input"),
+    accountSetupHint: byId("account-setup-hint"),
+    accountSetupError: byId("account-setup-error"),
+    accountSetupCancelButton: byId("account-setup-cancel-btn"),
+    accountSetupSubmitButton: byId("account-setup-submit-btn"),
     roomsView: byId("rooms-view"),
     chatView: byId("chat-view"),
     roomsPanel: byId("rooms-panel"),
@@ -67,6 +76,8 @@ export const elements = {
     typingIndicator: byId("typing-indicator"),
     currentRoomName: byId("current-room-name"),
     userBar: byId("user-bar"),
+    accountNameStatus: byId("account-name-status"),
+    accountNameChangeButton: byId("account-name-change-btn"),
     unreadBadgesToggle: byId("setting-unread-badges"),
     notificationsButton: byId("setting-notifications-btn"),
     notificationStatus: byId("notification-status"),
@@ -122,6 +133,8 @@ export function showMenuPanel(panel) {
 
 export function setUserBar(profile) {
     elements.userBar.replaceChildren();
+    elements.userBar.setAttribute("role", "button");
+    elements.userBar.tabIndex = 0;
 
     const avatar = document.createElement("img");
     avatar.className = "user-avatar";
@@ -132,10 +145,20 @@ export function setUserBar(profile) {
         avatar.src = profile.avatarUrl;
     }
 
-    const name = document.createElement("span");
-    name.textContent = profile.name;
+    const text = document.createElement("span");
+    text.className = "user-bar-text";
 
-    elements.userBar.append(avatar, name);
+    const name = document.createElement("span");
+    name.className = "user-bar-name";
+    name.textContent = profile.accountName ? `@${profile.accountName}` : profile.name;
+
+    const note = document.createElement("span");
+    note.className = "user-bar-note";
+    note.textContent = "コピー";
+
+    text.append(name, note);
+
+    elements.userBar.append(avatar, text);
 }
 
 export function setAppVersion(version) {

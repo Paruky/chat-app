@@ -3,6 +3,15 @@ import {
     prepareFileAttachment,
     prepareImageAttachment
 } from "./attachments.mjs";
+import {
+    fetchAccountProfile,
+    saveAccountProfile
+} from "./accountProfile.mjs";
+import {
+    getAccountKey,
+    normalizeAccountName,
+    validateAccountName
+} from "./accountNames.mjs";
 import { setupCannedMessagesPanel } from "./cannedMessages.mjs";
 import {
     elements,
@@ -60,7 +69,6 @@ import {
     formatDmTitle,
     getDmPeer,
     isDmRoom,
-    normalizeAccountName,
     renderDmList
 } from "./dms.mjs";
 import { renderRoomList } from "./rooms.mjs";
@@ -104,7 +112,10 @@ const supabaseClient = window.supabase.createClient(
 
 const state = {
     user: null,
+    accountProfile: null,
     accessToken: "",
+    hasStarted: false,
+    isSavingAccountProfile: false,
     currentRoom: "",
     rooms: [],
     roomRecords: [],
@@ -275,22 +286,153 @@ function cleanText(value, maxLength) {
 function getUserProfile(user = state.user) {
     if (!user) return null;
 
+    const accountName = state.accountProfile?.accountName || "";
+
     return {
-        name: user.user_metadata?.user_name ||
+        name: accountName ||
+            user.user_metadata?.user_name ||
             user.user_metadata?.preferred_username ||
             user.email ||
             "ユーザー",
+        accountName,
+        accountKey: state.accountProfile?.accountKey || getAccountKey(accountName),
         avatarUrl: user.user_metadata?.avatar_url || ""
     };
 }
 
 function getCurrentAccount() {
-    return normalizeAccountName(
-        state.user?.user_metadata?.preferred_username ||
-        state.user?.user_metadata?.user_name ||
-        state.user?.email?.split("@")[0] ||
-        ""
-    );
+    return normalizeAccountName(state.accountProfile?.accountName || "");
+}
+
+function getCurrentAccountAliases() {
+    return [
+        getCurrentAccount(),
+        state.accountProfile?.fallbackAccountName
+    ].filter(Boolean);
+}
+
+function setAccountProfile(profile) {
+    state.accountProfile = profile;
+
+    const userProfile = getUserProfile();
+
+    if (userProfile) {
+        setUserBar(userProfile);
+    }
+
+    renderAccountNameStatus();
+}
+
+function renderAccountNameStatus() {
+    const accountName = getCurrentAccount();
+
+    elements.accountNameStatus.textContent = accountName
+        ? `@${accountName}`
+        : "未設定";
+}
+
+function setAccountSetupOpen(isOpen, options = {}) {
+    const {
+        required = false,
+        title = required ? "パルチャ名を設定" : "パルチャ名を変更"
+    } = options;
+
+    elements.accountSetupModal.hidden = !isOpen;
+    elements.accountSetupModal.dataset.required = String(required);
+    elements.accountSetupCancelButton.hidden = required;
+    elements.accountSetupTitle.textContent = title;
+    elements.accountSetupSubmitButton.disabled = false;
+    elements.accountSetupError.textContent = "";
+
+    if (!isOpen) return;
+
+    elements.accountSetupInput.value = getCurrentAccount() ||
+        state.accountProfile?.fallbackAccountName ||
+        "";
+    validateAccountSetupInput();
+    elements.accountSetupInput.focus();
+    elements.accountSetupInput.select();
+}
+
+function validateAccountSetupInput() {
+    const validation = validateAccountName(elements.accountSetupInput.value);
+    const count = Array.from(elements.accountSetupInput.value.trim().replace(/^@+/, "")).length;
+
+    elements.accountSetupHint.textContent = `${count}/20 文字`;
+
+    if (!validation.ok) {
+        elements.accountSetupError.textContent = validation.message;
+        return null;
+    }
+
+    elements.accountSetupError.textContent = "";
+    return validation.accountName;
+}
+
+async function restartSocketWithFreshProfile() {
+    if (!state.user) return;
+
+    await refreshAccessToken();
+
+    if (socket.connected) {
+        socket.disconnect();
+    }
+
+    await connectAuthenticatedSocket();
+}
+
+async function saveAccountSetup() {
+    if (state.isSavingAccountProfile) return;
+
+    const accountName = validateAccountSetupInput();
+
+    if (!accountName) return;
+
+    state.isSavingAccountProfile = true;
+    elements.accountSetupSubmitButton.disabled = true;
+
+    try {
+        const profile = await saveAccountProfile(accountName, await getAccessToken());
+
+        setAccountProfile({
+            ...profile,
+            needsAccountName: false
+        });
+        setAccountSetupOpen(false);
+        await restartSocketWithFreshProfile();
+
+        if (!state.hasStarted) {
+            await startAuthenticatedApp();
+        } else {
+            renderRooms();
+            renderDms();
+            refreshNotificationStatus();
+        }
+    } catch (error) {
+        elements.accountSetupError.textContent = error.message || "保存できませんでした";
+    } finally {
+        state.isSavingAccountProfile = false;
+        elements.accountSetupSubmitButton.disabled = false;
+    }
+}
+
+async function copyCurrentAccountName() {
+    const accountName = getCurrentAccount();
+
+    if (!accountName) {
+        setAccountSetupOpen(true, { required: true });
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(accountName);
+        elements.userBar.classList.add("copied");
+        window.setTimeout(() => {
+            elements.userBar.classList.remove("copied");
+        }, 1100);
+    } catch (error) {
+        window.prompt("アカウント名をコピーしてください", accountName);
+    }
 }
 
 function normalizeRoomRecord(room) {
@@ -310,7 +452,7 @@ function normalizeRoomRecord(room) {
         name,
         ownerUserId: String(room?.ownerUserId || ""),
         ownerAccountName: cleanText(room?.ownerAccountName || "", 160),
-        ownerAccountKey: normalizeAccountName(room?.ownerAccountKey || ""),
+        ownerAccountKey: getAccountKey(room?.ownerAccountKey || ""),
         isDm: room?.isDm === true || isDmRoom(name),
         isOwner: room?.isOwner === true,
         memberCount: Number(room?.memberCount || 0),
@@ -346,7 +488,7 @@ function renderRooms() {
 function renderDms() {
     renderDmList({
         rooms: state.rooms,
-        currentAccount: getCurrentAccount(),
+        currentAccount: getCurrentAccountAliases(),
         currentRoom: state.currentRoom,
         unreadCounts: state.unreadCounts,
         showUnreadBadges: state.settings.unreadBadges,
@@ -485,7 +627,7 @@ function saveNewMessages() {
 function getNewMessagePeer(entry) {
     return entry.accountName ||
         state.dmDisplayNames[entry.room] ||
-        getDmPeer(entry.room, getCurrentAccount()) ||
+        getDmPeer(entry.room, getCurrentAccountAliases()) ||
         normalizeAccountName(entry.name);
 }
 
@@ -679,7 +821,7 @@ function markRoomAsRead(room) {
 function incrementUnread(room) {
     if (!room || room === state.currentRoom) return;
     if (isDmRoom(room)) {
-        if (!getDmPeer(room, getCurrentAccount()) && !state.dmDisplayNames[room]) return;
+        if (!getDmPeer(room, getCurrentAccountAliases()) && !state.dmDisplayNames[room]) return;
         showDmRoom(room);
     }
 
@@ -1192,12 +1334,25 @@ function joinRoom(value, options = {}) {
 function joinDm(value, options = {}) {
     const { updateRoute = true } = options;
     const currentAccount = getCurrentAccount();
-    const targetAccount = normalizeAccountName(value?.peer || value);
+    const targetValidation = validateAccountName(value?.peer || value);
     const existingRoom = cleanText(value?.room, LIMITS.roomName);
+    const targetAccount = targetValidation.accountName || "";
     const room = createDmRoom(currentAccount, targetAccount);
     const nextRoom = existingRoom || room;
 
-    if (!nextRoom || !state.user) return;
+    if (!state.user) return;
+
+    if (!currentAccount) {
+        setAccountSetupOpen(true, { required: true });
+        return;
+    }
+
+    if (!targetValidation.ok) {
+        window.alert(targetValidation.message);
+        return;
+    }
+
+    if (!nextRoom) return;
 
     if (updateRoute) {
         navigateToDm(targetAccount);
@@ -1257,6 +1412,28 @@ async function login() {
     });
 }
 
+async function startAuthenticatedApp() {
+    if (state.hasStarted) return;
+
+    state.hasStarted = true;
+    state.newMessagePreviews = (loadNewMessagePreviews(getNewMessageStorageKey()) || [])
+        .map(normalizeNewMessagePreview)
+        .filter(Boolean)
+        .slice(0, 8);
+    renderNewMessages();
+    refreshNotificationStatus();
+    await connectAuthenticatedSocket();
+
+    const savedRoom = cleanText(loadLastRoom(), LIMITS.roomName);
+
+    if (!window.location.hash && savedRoom) {
+        navigateToRooms();
+    }
+
+    syncRoute();
+    syncNotificationPresence();
+}
+
 async function checkUser() {
     await refreshAccessToken();
 
@@ -1276,25 +1453,28 @@ async function checkUser() {
         return;
     }
 
-    const profile = getUserProfile();
-    setUserBar(profile);
-    setLoading(false);
-    state.newMessagePreviews = (loadNewMessagePreviews(getNewMessageStorageKey()) || [])
-        .map(normalizeNewMessagePreview)
-        .filter(Boolean)
-        .slice(0, 8);
-    renderNewMessages();
-    refreshNotificationStatus();
-    await connectAuthenticatedSocket();
-
-    const savedRoom = cleanText(loadLastRoom(), LIMITS.roomName);
-
-    if (!window.location.hash && savedRoom) {
-        navigateToRooms();
+    try {
+        setAccountProfile(await fetchAccountProfile(await getAccessToken()));
+    } catch (profileError) {
+        console.warn("profile error", profileError);
+        setAccountProfile({
+            accountName: "",
+            accountKey: "",
+            displayName: getUserProfile()?.name || "ユーザー",
+            avatarUrl: getUserProfile()?.avatarUrl || "",
+            fallbackAccountName: "",
+            needsAccountName: true
+        });
     }
 
-    syncRoute();
-    syncNotificationPresence();
+    setLoading(false);
+
+    if (state.accountProfile?.needsAccountName) {
+        setAccountSetupOpen(true, { required: true });
+        return;
+    }
+
+    await startAuthenticatedApp();
 }
 
 function isMobileInput() {
@@ -1383,6 +1563,35 @@ const versionHistoryPage = setupVersionHistoryPage({
     getAccessToken
 });
 
+elements.accountSetupForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveAccountSetup();
+});
+
+elements.accountSetupCancelButton.addEventListener("click", () => {
+    if (elements.accountSetupModal.dataset.required === "true") return;
+
+    setAccountSetupOpen(false);
+});
+
+elements.accountSetupInput.addEventListener("input", validateAccountSetupInput);
+
+elements.accountNameChangeButton.addEventListener("click", () => {
+    setAccountSetupOpen(true, {
+        required: false,
+        title: "パルチャ名を変更"
+    });
+});
+
+elements.userBar.addEventListener("click", copyCurrentAccountName);
+
+elements.userBar.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    event.preventDefault();
+    copyCurrentAccountName();
+});
+
 elements.messages.addEventListener("scroll", () => {
     state.shouldAutoScroll = isNearBottom();
 
@@ -1423,9 +1632,15 @@ elements.roomMemberForm.addEventListener("submit", (event) => {
     event.preventDefault();
 
     const room = state.managedRoom;
-    const accountName = normalizeAccountName(elements.roomMemberInput.value);
+    const validation = validateAccountName(elements.roomMemberInput.value);
+    const accountName = validation.accountName || "";
 
-    if (!room || !accountName) return;
+    if (!room) return;
+
+    if (!validation.ok) {
+        window.alert(validation.message);
+        return;
+    }
 
     socket.emit("add room member", {
         room,

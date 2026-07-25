@@ -1,14 +1,7 @@
-function normalizeAccountName(value) {
-    return String(value || "")
-        .trim()
-        .replace(/^@+/, "")
-        .replace(/\s+/g, "")
-        .slice(0, 39);
-}
-
-function getAccountKey(value) {
-    return normalizeAccountName(value).toLowerCase();
-}
+const {
+    getAccountKey,
+    normalizeAccountName
+} = require("./accountNames");
 
 function readBearerToken(value) {
     const token = String(value || "").trim();
@@ -90,6 +83,7 @@ function normalizeAuthUser(user) {
         email: user.email || "",
         accountName,
         accountKey: getAccountKey(accountName),
+        accountKeys: [getAccountKey(accountName)].filter(Boolean),
         name: displayName.slice(0, 160) || "ユーザー",
         avatarUrl: String(
             getDisplayMetadataValue(user, ["avatar_url", "picture"]) || ""
@@ -97,7 +91,32 @@ function normalizeAuthUser(user) {
     };
 }
 
-function createAuthService(supabase) {
+function applySavedProfile(authUser, profile) {
+    if (!authUser) return null;
+    if (!profile) {
+        return {
+            ...authUser,
+            needsAccountName: true
+        };
+    }
+
+    const accountKeys = [
+        profile.accountKey,
+        authUser.accountKey,
+        ...(authUser.accountKeys || [])
+    ].filter(Boolean);
+
+    return {
+        ...authUser,
+        accountName: profile.accountName,
+        accountKey: profile.accountKey,
+        accountKeys: [...new Set(accountKeys)],
+        name: profile.accountName || authUser.name,
+        needsAccountName: false
+    };
+}
+
+function createAuthService(supabase, profilesRepository = null) {
     async function getUserFromAccessToken(accessToken) {
         const token = readBearerToken(accessToken);
 
@@ -110,7 +129,18 @@ function createAuthService(supabase) {
             return null;
         }
 
-        return normalizeAuthUser(data?.user);
+        const authUser = normalizeAuthUser(data?.user);
+
+        if (!authUser || !profilesRepository) return authUser;
+
+        try {
+            const profile = await profilesRepository.getProfile(authUser.id);
+
+            return applySavedProfile(authUser, profile);
+        } catch (error) {
+            console.warn("[auth] profile lookup failed:", error.message);
+            return applySavedProfile(authUser, null);
+        }
     }
 
     return {
